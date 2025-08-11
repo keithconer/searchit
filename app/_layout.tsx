@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   DarkTheme,
   DefaultTheme,
@@ -6,6 +7,7 @@ import {
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -15,6 +17,25 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
+
+  useEffect(() => {
+    const clearOnFreshInstall = async () => {
+      try {
+        const hasLaunched = await AsyncStorage.getItem("hasLaunched");
+        if (!hasLaunched) {
+          // Clear all local storage data
+          await AsyncStorage.clear();
+
+          // Mark that the app has launched once
+          await AsyncStorage.setItem("hasLaunched", "true");
+        }
+      } catch (error) {
+        console.log("Error clearing storage on fresh install:", error);
+      }
+    };
+
+    clearOnFreshInstall();
+  }, []);
 
   if (!loaded) return null;
 

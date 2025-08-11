@@ -73,6 +73,9 @@ export default function SearchActions({
   const [disconnectModalVisible, setDisconnectModalVisible] = useState(false);
   const [buzzerState, setBuzzerState] = useState(false);
   const [buzzerLoading, setBuzzerLoading] = useState(false);
+  // Add LED state tracking (mirrors buzzer state since Arduino controls them together)
+  const [ledState, setLedState] = useState(false);
+  const [ledLoading, setLedLoading] = useState(false);
 
   // Real-time RSSI monitoring (1s interval)
   useEffect(() => {
@@ -117,7 +120,7 @@ export default function SearchActions({
     return () => animation.stop();
   }, [opacity]);
 
-  // Set up notification listener for buzzer responses
+  // Set up notification listener for buzzer and LED responses
   useEffect(() => {
     if (!connectedDevice) return;
 
@@ -139,12 +142,17 @@ export default function SearchActions({
               ).toString("utf8");
               console.log("Received response:", response);
 
+              // Since Arduino controls buzzer and LED together, update both states
               if (response === "BUZZER_ON") {
                 setBuzzerState(true);
+                setLedState(true); // LED follows buzzer state
                 setBuzzerLoading(false);
+                setLedLoading(false);
               } else if (response === "BUZZER_OFF") {
                 setBuzzerState(false);
+                setLedState(false); // LED follows buzzer state
                 setBuzzerLoading(false);
+                setLedLoading(false);
               }
             }
           }
@@ -157,7 +165,7 @@ export default function SearchActions({
     setupNotifications();
   }, [connectedDevice]);
 
-  // BLE command sender for buzzer
+  // BLE command sender for buzzer (also controls LED since they're linked in Arduino)
   const handleBuzzerPress = async () => {
     if (!connectedDevice) {
       Alert.alert("Error", "Device not connected");
@@ -165,6 +173,7 @@ export default function SearchActions({
     }
 
     setBuzzerLoading(true);
+    setLedLoading(true); // Set LED loading too since they're controlled together
 
     try {
       const command = "BUZZ_TOGGLE";
@@ -180,22 +189,53 @@ export default function SearchActions({
       // Set a timeout as fallback
       setTimeout(() => {
         setBuzzerLoading(false);
+        setLedLoading(false);
       }, 3000);
     } catch (error) {
       console.log("Buzzer error:", error);
       setBuzzerLoading(false);
+      setLedLoading(false);
       Alert.alert("Error", "Failed to control buzzer");
     }
   };
 
-  // Placeholder for light button
+  // LED control function (uses same command as buzzer since Arduino controls them together)
   const handleLightPress = async () => {
-    Alert.alert("Light Control", "Light control not implemented yet");
+    if (!connectedDevice) {
+      Alert.alert("Error", "Device not connected");
+      return;
+    }
+
+    setBuzzerLoading(true);
+    setLedLoading(true);
+
+    try {
+      const command = "BUZZ_TOGGLE"; // Same command since Arduino controls both together
+      const base64Command = Buffer.from(command, "utf8").toString("base64");
+
+      await connectedDevice.writeCharacteristicWithResponseForService(
+        SERVICE_UUID,
+        WRITE_CHARACTERISTIC_UUID,
+        base64Command
+      );
+
+      // Loading state will be cleared by the notification response
+      setTimeout(() => {
+        setBuzzerLoading(false);
+        setLedLoading(false);
+      }, 3000);
+    } catch (error) {
+      console.log("LED error:", error);
+      setBuzzerLoading(false);
+      setLedLoading(false);
+      Alert.alert("Error", "Failed to control LED");
+    }
   };
 
   const handleDisconnectModalClose = () => {
     setDisconnectModalVisible(false);
     setBuzzerState(false); // Reset buzzer state when disconnecting
+    setLedState(false); // Reset LED state when disconnecting
     onBack();
   };
 
@@ -273,12 +313,34 @@ export default function SearchActions({
               : "Buzzer"}
           </Text>
         </TouchableOpacity>
+
         <TouchableOpacity
-          style={styles.actionButton}
+          style={[
+            styles.actionButton,
+            ledState && styles.actionButtonActiveLed,
+          ]}
           onPress={handleLightPress}
+          disabled={ledLoading}
         >
-          <Ionicons name="flash" size={32} color="#247eff" />
-          <Text style={styles.actionLabel}>Light</Text>
+          {ledLoading ? (
+            <Animated.View style={{ opacity }}>
+              <Ionicons name="flash" size={32} color="#247eff" />
+            </Animated.View>
+          ) : (
+            <Ionicons
+              name={ledState ? "flash" : "flash-outline"}
+              size={32}
+              color={ledState ? "#ffd600" : "#247eff"}
+            />
+          )}
+          <Text
+            style={[
+              styles.actionLabel,
+              { color: ledState ? "#ffd600" : "#247eff" },
+            ]}
+          >
+            {ledLoading ? "Loading..." : ledState ? "LED ON" : "LED"}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -386,10 +448,14 @@ const styles = StyleSheet.create({
   actionButtonActive: {
     backgroundColor: "#ffebee",
   },
+  actionButtonActiveLed: {
+    backgroundColor: "#fffbeb", // Light yellow background for LED active state
+  },
   actionLabel: {
     marginTop: 6,
     fontSize: 12,
     fontWeight: "600",
+    color: "#247eff",
   },
   modalOverlay: {
     flex: 1,
