@@ -1,7 +1,7 @@
 "use client";
 
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { Buffer } from "buffer"; // add this import and make sure 'buffer' is installed
+import { Buffer } from "buffer";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -31,12 +31,10 @@ interface SearchActionsProps {
   bluetoothOff?: boolean;
 }
 
-// BLE Service and Characteristic UUIDs
 const SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
 const CHARACTERISTIC_UUID = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
 const WRITE_CHARACTERISTIC_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
 
-// Proximity helpers
 const getProximity = (rssi: number | null) => {
   if (rssi === null) return "";
   if (rssi >= -55) return "Super Near";
@@ -46,11 +44,11 @@ const getProximity = (rssi: number | null) => {
 };
 
 const getSignalColor = (rssi: number | null) => {
-  if (rssi === null) return "#bdbdbd"; // Grey
-  if (rssi >= -55) return "#00c853"; // Green
-  if (rssi >= -65) return "#ffd600"; // Yellow
-  if (rssi >= -80) return "#ff9100"; // Orange
-  return "#d32f2f"; // Red
+  if (rssi === null) return "#bdbdbd";
+  if (rssi >= -55) return "#00c853";
+  if (rssi >= -65) return "#ffd600";
+  if (rssi >= -80) return "#ff9100";
+  return "#d32f2f";
 };
 
 const getSignalIcon = (rssi: number | null) => {
@@ -71,16 +69,16 @@ export default function SearchActions({
   const opacity = useRef(new Animated.Value(1)).current;
   const [currentRssi, setCurrentRssi] = useState(rssi);
   const [disconnectModalVisible, setDisconnectModalVisible] = useState(false);
+
   const [buzzerState, setBuzzerState] = useState(false);
   const [buzzerLoading, setBuzzerLoading] = useState(false);
-  // Add LED state tracking (mirrors buzzer state since Arduino controls them together)
+
   const [ledState, setLedState] = useState(false);
   const [ledLoading, setLedLoading] = useState(false);
 
-  // Real-time RSSI monitoring (1s interval)
   useEffect(() => {
     if (!connectedDevice) return;
-    const updateRSSI = async () => {
+    const interval = setInterval(async () => {
       try {
         const updatedDevice = await connectedDevice.readRSSI();
         const rssiValue = updatedDevice.rssi;
@@ -89,11 +87,10 @@ export default function SearchActions({
         if (rssiValue === null || rssiValue < -90) {
           setDisconnectModalVisible(true);
         }
-      } catch (error) {
+      } catch {
         setDisconnectModalVisible(true);
       }
-    };
-    const interval = setInterval(updateRSSI, 1000);
+    }, 1000);
     return () => clearInterval(interval);
   }, [connectedDevice]);
 
@@ -120,7 +117,6 @@ export default function SearchActions({
     return () => animation.stop();
   }, [opacity]);
 
-  // Set up notification listener for buzzer and LED responses
   useEffect(() => {
     if (!connectedDevice) return;
 
@@ -140,18 +136,22 @@ export default function SearchActions({
                 characteristic.value,
                 "base64"
               ).toString("utf8");
+
               console.log("Received response:", response);
 
-              // Since Arduino controls buzzer and LED together, update both states
               if (response === "BUZZER_ON") {
                 setBuzzerState(true);
-                setLedState(true); // LED follows buzzer state
+                setLedState(true);
                 setBuzzerLoading(false);
-                setLedLoading(false);
               } else if (response === "BUZZER_OFF") {
                 setBuzzerState(false);
-                setLedState(false); // LED follows buzzer state
+                setLedState(false);
                 setBuzzerLoading(false);
+              } else if (response === "LED_ON") {
+                setLedState(true);
+                setLedLoading(false);
+              } else if (response === "LED_OFF") {
+                setLedState(false);
                 setLedLoading(false);
               }
             }
@@ -165,68 +165,40 @@ export default function SearchActions({
     setupNotifications();
   }, [connectedDevice]);
 
-  // BLE command sender for buzzer (also controls LED since they're linked in Arduino)
-  const handleBuzzerPress = async () => {
+  const sendToggleCommand = async (command: string) => {
     if (!connectedDevice) {
       Alert.alert("Error", "Device not connected");
       return;
     }
 
+    const base64Command = Buffer.from(command, "utf8").toString("base64");
+
+    await connectedDevice.writeCharacteristicWithResponseForService(
+      SERVICE_UUID,
+      WRITE_CHARACTERISTIC_UUID,
+      base64Command
+    );
+  };
+
+  const handleBuzzerPress = async () => {
     setBuzzerLoading(true);
-    setLedLoading(true); // Set LED loading too since they're controlled together
-
     try {
-      const command = "BUZZ_TOGGLE";
-      const base64Command = Buffer.from(command, "utf8").toString("base64");
-
-      await connectedDevice.writeCharacteristicWithResponseForService(
-        SERVICE_UUID,
-        WRITE_CHARACTERISTIC_UUID,
-        base64Command
-      );
-
-      // Loading state will be cleared by the notification response
-      // Set a timeout as fallback
-      setTimeout(() => {
-        setBuzzerLoading(false);
-        setLedLoading(false);
-      }, 3000);
+      await sendToggleCommand("BUZZ_TOGGLE");
+      setTimeout(() => setBuzzerLoading(false), 3000); // Fallback
     } catch (error) {
       console.log("Buzzer error:", error);
       setBuzzerLoading(false);
-      setLedLoading(false);
       Alert.alert("Error", "Failed to control buzzer");
     }
   };
 
-  // LED control function (uses same command as buzzer since Arduino controls them together)
   const handleLightPress = async () => {
-    if (!connectedDevice) {
-      Alert.alert("Error", "Device not connected");
-      return;
-    }
-
-    setBuzzerLoading(true);
     setLedLoading(true);
-
     try {
-      const command = "BUZZ_TOGGLE"; // Same command since Arduino controls both together
-      const base64Command = Buffer.from(command, "utf8").toString("base64");
-
-      await connectedDevice.writeCharacteristicWithResponseForService(
-        SERVICE_UUID,
-        WRITE_CHARACTERISTIC_UUID,
-        base64Command
-      );
-
-      // Loading state will be cleared by the notification response
-      setTimeout(() => {
-        setBuzzerLoading(false);
-        setLedLoading(false);
-      }, 3000);
+      await sendToggleCommand("LED_TOGGLE");
+      setTimeout(() => setLedLoading(false), 3000); // Fallback
     } catch (error) {
       console.log("LED error:", error);
-      setBuzzerLoading(false);
       setLedLoading(false);
       Alert.alert("Error", "Failed to control LED");
     }
@@ -234,12 +206,11 @@ export default function SearchActions({
 
   const handleDisconnectModalClose = () => {
     setDisconnectModalVisible(false);
-    setBuzzerState(false); // Reset buzzer state when disconnecting
-    setLedState(false); // Reset LED state when disconnecting
+    setBuzzerState(false);
+    setLedState(false);
     onBack();
   };
 
-  // Modern RSSI & Proximity UI
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.centeredContent}>
@@ -263,7 +234,7 @@ export default function SearchActions({
             <View
               style={[
                 styles.proximityPill,
-                { backgroundColor: getSignalColor(currentRssi) + "22" }, // faded background
+                { backgroundColor: getSignalColor(currentRssi) + "22" },
               ]}
             >
               <Text
@@ -279,7 +250,6 @@ export default function SearchActions({
         </View>
       </View>
 
-      {/* Bottom Action Bar */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={[
@@ -344,7 +314,6 @@ export default function SearchActions({
         </TouchableOpacity>
       </View>
 
-      {/* Disconnection Modal */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -359,7 +328,7 @@ export default function SearchActions({
             </Text>
             <Text style={styles.modalText}>
               You have been disconnected due to distance limitations or
-              Bluetooth is off. Ensure you are within 10-15 meters from the
+              Bluetooth is off. Ensure you are within 10–15 meters from the
               microcontroller and keep the Bluetooth on.
             </Text>
             <TouchableOpacity
@@ -449,7 +418,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffebee",
   },
   actionButtonActiveLed: {
-    backgroundColor: "#fffbeb", // Light yellow background for LED active state
+    backgroundColor: "#fffbeb",
   },
   actionLabel: {
     marginTop: 6,
