@@ -141,11 +141,9 @@ export default function SearchActions({
 
               if (response === "BUZZER_ON") {
                 setBuzzerState(true);
-                setLedState(true);
                 setBuzzerLoading(false);
               } else if (response === "BUZZER_OFF") {
                 setBuzzerState(false);
-                setLedState(false);
                 setBuzzerLoading(false);
               } else if (response === "LED_ON") {
                 setLedState(true);
