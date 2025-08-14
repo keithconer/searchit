@@ -32,9 +32,9 @@ import SearchActions from "./search-actions";
 type TagType = ItemType<string>;
 
 const TAGS: TagType[] = [
-  { label: "ESP32 C3mini (Tag 1)", value: "tag1" },
-  { label: "ESP32 Wroom (Tag 2)", value: "tag2" },
-  { label: "ESP32 CAM (Tag 3)", value: "tag3" },
+  { label: "Tag 1", value: "tag1" },
+  { label: "Tag 2", value: "tag2" },
+  { label: "Tag 3", value: "tag3" },
 ];
 
 // ESP32 BLE Configuration
@@ -851,7 +851,7 @@ export default function HomeScreen() {
                 <Text style={styles.label}>Description</Text>
                 <TextInput
                   ref={descRef}
-                  placeholder="Write a very short description where you usually place this object."
+                  placeholder="Write what tag you assign on this object"
                   placeholderTextColor="#888"
                   multiline
                   style={[styles.input, { height: 60 }]}
@@ -1281,7 +1281,7 @@ export default function HomeScreen() {
         <View style={styles.modalBg}>
           <View style={styles.scanningModalContent}>
             <Ionicons
-              name="cellular"
+              name="radio"
               size={40}
               color="#247eff"
               style={styles.scanningIcon}
@@ -1658,7 +1658,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 20 },
   containerNoPad: { flex: 1, backgroundColor: "#fff" },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-  centeredTop: { alignItems: "center", marginTop: 36, marginBottom: 10 },
+  centeredTop: { alignItems: "center", marginTop: 50, marginBottom: 24 },
   logo: { width: 80, height: 80, resizeMode: "contain", marginBottom: 10 },
   heading: {
     fontSize: 32,
@@ -1676,12 +1676,12 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "500",
     marginHorizontal: 30,
-    marginBottom: 6,
+    marginBottom: 16,
     color: "#555",
   },
   objectListWrapper: {
     backgroundColor: "#f8f6f5",
-    marginHorizontal: 0,
+    marginHorizontal: 20,
     borderRadius: 6,
     paddingVertical: 2,
     marginBottom: 12,
@@ -1698,9 +1698,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   objectName: {
-    fontWeight: "bold",
+    fontWeight: "500",
     fontSize: 16,
-    color: "#222",
+    color: "#444",
   },
   objectDesc: {
     color: "#999",
@@ -1726,15 +1726,19 @@ const styles = StyleSheet.create({
   },
   addButton: {
     backgroundColor: "#247eff",
-    padding: 15,
+    padding: 16,
     borderRadius: 8,
-    width: 200,
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   addButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
     textAlign: "center",
+    marginLeft: 8,
   },
   formContainer: { flex: 1 },
   title: {
@@ -2067,14 +2071,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   scanningCancelButton: {
-    backgroundColor: "#247eff",
+    backgroundColor: "#fff",
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
     width: "100%",
+    borderWidth: 1,
+    borderColor: "#ddd",
   },
   scanningCancelButtonText: {
-    color: "#fff",
+    color: "#555",
     fontWeight: "bold",
     fontSize: 16,
     textAlign: "center",
