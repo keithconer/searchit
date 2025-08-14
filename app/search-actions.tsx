@@ -43,14 +43,6 @@ const getProximity = (rssi: number | null) => {
   return "Super Far";
 };
 
-const getSignalColor = (rssi: number | null) => {
-  if (rssi === null) return "#9ca3af";
-  if (rssi >= -55) return "#10b981";
-  if (rssi >= -65) return "#f59e0b";
-  if (rssi >= -80) return "#f97316";
-  return "#ef4444";
-};
-
 const getSignalIcon = (rssi: number | null) => {
   if (rssi === null) return "signal-off";
   if (rssi >= -55) return "signal-cellular-3";
@@ -217,43 +209,20 @@ export default function SearchActions({
       </View>
 
       <View style={styles.mainContent}>
-        <View
-          style={[
-            styles.signalCard,
-            {
-              backgroundColor: getSignalColor(currentRssi) + "08",
-              borderColor: getSignalColor(currentRssi) + "20",
-            },
-          ]}
-        >
-          <View
-            style={[
-              styles.iconContainer,
-              { backgroundColor: getSignalColor(currentRssi) + "15" },
-            ]}
-          >
+        <View style={styles.signalCard}>
+          <View style={styles.iconContainer}>
             <MaterialCommunityIcons
               name={getSignalIcon(currentRssi)}
-              size={48}
-              color={getSignalColor(currentRssi)}
+              size={40}
+              color="#9ca3af"
             />
           </View>
 
-          <Animated.Text
-            style={[
-              styles.rssiValue,
-              { color: getSignalColor(currentRssi), opacity },
-            ]}
-          >
+          <Animated.Text style={[styles.rssiValue, { opacity }]}>
             {currentRssi !== null ? `${currentRssi} dBm` : "No Signal"}
           </Animated.Text>
 
-          <View
-            style={[
-              styles.proximityBadge,
-              { backgroundColor: getSignalColor(currentRssi) },
-            ]}
-          >
+          <View style={styles.proximityBadge}>
             <Text style={styles.proximityText}>
               {getProximity(currentRssi)}
             </Text>
@@ -393,28 +362,28 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 20,
     alignItems: "center",
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: "#e5e7eb",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOpacity: 0.02,
+    shadowRadius: 1,
+    elevation: 0.5,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
     backgroundColor: "#f9fafb",
   },
   rssiValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "600",
     marginBottom: 8,
-    color: "#111827",
+    color: "#374151",
   },
   proximityBadge: {
     paddingHorizontal: 8,
