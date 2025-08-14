@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Animated,
+  Image,
   Modal,
   StyleSheet,
   Text,
@@ -51,6 +52,14 @@ const getSignalIcon = (rssi: number | null) => {
   return "signal-cellular-outline";
 };
 
+const getSignalColor = (rssi: number | null) => {
+  if (rssi === null) return "#9ca3af";
+  if (rssi >= -55) return "#10b981"; // Green for excellent signal
+  if (rssi >= -65) return "#f59e0b"; // Yellow for good signal
+  if (rssi >= -80) return "#f97316"; // Orange for fair signal
+  return "#ef4444"; // Red for poor signal
+};
+
 export default function SearchActions({
   object,
   rssi,
@@ -59,6 +68,7 @@ export default function SearchActions({
   bluetoothOff = false,
 }: SearchActionsProps) {
   const opacity = useRef(new Animated.Value(1)).current;
+  const shakeAnimation = useRef(new Animated.Value(0)).current;
   const [currentRssi, setCurrentRssi] = useState(rssi);
   const [disconnectModalVisible, setDisconnectModalVisible] = useState(false);
 
@@ -108,6 +118,45 @@ export default function SearchActions({
     animation.start();
     return () => animation.stop();
   }, [opacity]);
+
+  useEffect(() => {
+    if (buzzerState || ledState) {
+      const shakeSequence = Animated.loop(
+        Animated.sequence([
+          Animated.timing(shakeAnimation, {
+            toValue: 10,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnimation, {
+            toValue: -10,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnimation, {
+            toValue: 10,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnimation, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.delay(400), // Pause between rings like a phone
+        ])
+      );
+      shakeSequence.start();
+      return () => shakeSequence.stop();
+    } else {
+      // Reset animation when inactive
+      Animated.timing(shakeAnimation, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [buzzerState, ledState, shakeAnimation]);
 
   useEffect(() => {
     if (!connectedDevice) return;
@@ -208,95 +257,109 @@ export default function SearchActions({
         <Text style={styles.headerSubtitle}>Device Connection Status</Text>
       </View>
 
-      <View style={styles.mainContent}>
-        <View style={styles.signalCard}>
-          <View style={styles.iconContainer}>
+      <View style={styles.imageContainer}>
+        <Animated.View
+          style={[
+            styles.imageWrapper,
+            {
+              transform: [{ translateX: shakeAnimation }],
+            },
+          ]}
+        >
+          <Image
+            source={require("../assets/images/shakableImage.png")}
+            style={styles.shakableImage}
+          />
+        </Animated.View>
+      </View>
+
+      <View style={styles.bottomSection}>
+        <View style={styles.compactSignalCard}>
+          <View style={styles.compactIconContainer}>
             <MaterialCommunityIcons
               name={getSignalIcon(currentRssi)}
-              size={40}
-              color="#9ca3af"
+              size={20}
+              color={getSignalColor(currentRssi)}
             />
           </View>
-
-          <Animated.Text style={[styles.rssiValue, { opacity }]}>
-            {currentRssi !== null ? `${currentRssi} dBm` : "No Signal"}
-          </Animated.Text>
-
-          <View style={styles.proximityBadge}>
-            <Text style={styles.proximityText}>
+          <View style={styles.signalInfo}>
+            <Animated.Text style={[styles.compactRssiValue, { opacity }]}>
+              {currentRssi !== null ? `${currentRssi} dBm` : "No Signal"}
+            </Animated.Text>
+            <Text style={styles.compactProximityText}>
               {getProximity(currentRssi)}
             </Text>
           </View>
         </View>
-      </View>
 
-      <View style={styles.controlsContainer}>
-        <View style={styles.controlsRow}>
-          <TouchableOpacity
-            style={[
-              styles.modernButton,
-              buzzerState ? styles.buzzerActiveButton : styles.inactiveButton,
-            ]}
-            onPress={handleBuzzerPress}
-            disabled={buzzerLoading}
-          >
-            {buzzerLoading ? (
-              <Animated.View style={{ opacity }}>
+        <View style={styles.controlsContainer}>
+          <View style={styles.controlsRow}>
+            <TouchableOpacity
+              style={[
+                styles.modernButton,
+                buzzerState ? styles.buzzerActiveButton : styles.inactiveButton,
+              ]}
+              onPress={handleBuzzerPress}
+              disabled={buzzerLoading}
+            >
+              {buzzerLoading ? (
+                <Animated.View style={{ opacity }}>
+                  <Ionicons
+                    name="volume-high-outline"
+                    size={24}
+                    color="#247eff"
+                  />
+                </Animated.View>
+              ) : (
                 <Ionicons
-                  name="volume-high-outline"
+                  name={buzzerState ? "volume-high" : "volume-high-outline"}
                   size={24}
-                  color="#247eff"
+                  color={buzzerState ? "#ffffff" : "#247eff"}
                 />
-              </Animated.View>
-            ) : (
-              <Ionicons
-                name={buzzerState ? "volume-high" : "volume-high-outline"}
-                size={24}
-                color={buzzerState ? "#ffffff" : "#247eff"}
-              />
-            )}
-            <Text
-              style={[
-                styles.buttonText,
-                { color: buzzerState ? "#ffffff" : "#247eff" },
-              ]}
-            >
-              {buzzerLoading
-                ? "Loading..."
-                : buzzerState
-                ? "Buzzer ON"
-                : "Buzzer"}
-            </Text>
-          </TouchableOpacity>
+              )}
+              <Text
+                style={[
+                  styles.buttonText,
+                  { color: buzzerState ? "#ffffff" : "#247eff" },
+                ]}
+              >
+                {buzzerLoading
+                  ? "Loading..."
+                  : buzzerState
+                  ? "Buzzer ON"
+                  : "Buzzer"}
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.modernButton,
-              ledState ? styles.ledActiveButton : styles.inactiveButton,
-            ]}
-            onPress={handleLightPress}
-            disabled={ledLoading}
-          >
-            {ledLoading ? (
-              <Animated.View style={{ opacity }}>
-                <Ionicons name="flash-outline" size={24} color="#247eff" />
-              </Animated.View>
-            ) : (
-              <Ionicons
-                name={ledState ? "flash" : "flash-outline"}
-                size={24}
-                color={ledState ? "#ffffff" : "#247eff"}
-              />
-            )}
-            <Text
+            <TouchableOpacity
               style={[
-                styles.buttonText,
-                { color: ledState ? "#ffffff" : "#247eff" },
+                styles.modernButton,
+                ledState ? styles.ledActiveButton : styles.inactiveButton,
               ]}
+              onPress={handleLightPress}
+              disabled={ledLoading}
             >
-              {ledLoading ? "Loading..." : ledState ? "LED ON" : "LED"}
-            </Text>
-          </TouchableOpacity>
+              {ledLoading ? (
+                <Animated.View style={{ opacity }}>
+                  <Ionicons name="flash-outline" size={24} color="#247eff" />
+                </Animated.View>
+              ) : (
+                <Ionicons
+                  name={ledState ? "flash" : "flash-outline"}
+                  size={24}
+                  color={ledState ? "#ffffff" : "#247eff"}
+                />
+              )}
+              <Text
+                style={[
+                  styles.buttonText,
+                  { color: ledState ? "#ffffff" : "#247eff" },
+                ]}
+              >
+                {ledLoading ? "Loading..." : ledState ? "LED ON" : "LED"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -352,56 +415,66 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     fontWeight: "400",
   },
-  mainContent: {
+  imageContainer: {
     flex: 1,
     justifyContent: "center",
-    paddingHorizontal: 16,
+    alignItems: "center",
+    paddingHorizontal: 32,
   },
-  signalCard: {
+  imageWrapper: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  shakableImage: {
+    width: 200,
+    height: 200,
+    resizeMode: "contain",
+  },
+  bottomSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  compactSignalCard: {
     backgroundColor: "#ffffff",
-    borderRadius: 8,
-    padding: 20,
+    borderRadius: 6,
+    padding: 12,
+    flexDirection: "row",
     alignItems: "center",
     borderWidth: 0.5,
     borderColor: "#e5e7eb",
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.02,
     shadowRadius: 1,
     elevation: 0.5,
   },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  compactIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
+    marginRight: 12,
     backgroundColor: "#f9fafb",
   },
-  rssiValue: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
-    color: "#374151",
+  signalInfo: {
+    flex: 1,
   },
-  proximityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginTop: 4,
-    backgroundColor: "#f3f4f6",
-  },
-  proximityText: {
-    color: "#6b7280",
-    fontSize: 11,
+  compactRssiValue: {
+    fontSize: 14,
     fontWeight: "500",
+    color: "#6b7280", // Low opacity gray as requested
+    marginBottom: 2,
+  },
+  compactProximityText: {
+    color: "#9ca3af", // Low opacity gray as requested
+    fontSize: 10,
+    fontWeight: "400",
   },
   controlsContainer: {
     backgroundColor: "#ffffff",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingBottom: 20,
+    paddingVertical: 8,
     borderTopWidth: 1,
     borderTopColor: "#f3f4f6",
   },
