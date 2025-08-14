@@ -19,8 +19,8 @@ import {
   View,
 } from "react-native";
 import {
-  BleManager,
   State as BleState,
+  type BleManager,
   type Device,
 } from "react-native-ble-plx";
 import DropDownPicker, { type ItemType } from "react-native-dropdown-picker";
@@ -812,10 +812,9 @@ export default function HomeScreen() {
             {!showForm ? (
               <View style={styles.centered}>
                 <Image
-                  source={require("@/assets/imgs/logo.png")}
+                  source={require("@/assets/imgs/logoNew.png")}
                   style={styles.logo}
                 />
-                <Text style={styles.heading}>search it.</Text>
                 <Text style={styles.subheading}>
                   You can add 3 specific objects to monitor
                 </Text>
@@ -972,9 +971,7 @@ export default function HomeScreen() {
             )}
             <View style={{ height: 20 }} />
           </ScrollView>
-          <Text style={styles.footer}>
-            Search It, 2025. All Rights Reserved.
-          </Text>
+          <Text style={styles.footer}>2025. All Rights Reserved.</Text>
         </KeyboardAvoidingView>
 
         {/* --- Success Modal --- */}
@@ -1133,10 +1130,9 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View style={styles.centeredTop}>
           <Image
-            source={require("@/assets/imgs/logo.png")}
+            source={require("@/assets/imgs/logoNew.png")}
             style={styles.logo}
           />
-          <Text style={styles.heading}>search it.</Text>
         </View>
         <Text style={styles.selectLabel}>Select Object</Text>
         <View style={styles.objectListWrapper}>
@@ -1223,7 +1219,7 @@ export default function HomeScreen() {
         )}
 
         <View style={{ flex: 1 }} />
-        <Text style={styles.footer}>Search It, 2025. All Rights Reserved.</Text>
+        <Text style={styles.footer}>2025. All Rights Reserved.</Text>
       </ScrollView>
 
       {/* All modals remain the same... */}
