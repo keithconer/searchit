@@ -211,105 +211,124 @@ export default function SearchActions({
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.centeredContent}>
-        <Text style={styles.objectName}>{object.name}</Text>
-        <View style={styles.signalRow}>
-          <MaterialCommunityIcons
-            name={getSignalIcon(currentRssi)}
-            size={54}
-            color={getSignalColor(currentRssi)}
-            style={{ marginRight: 10 }}
-          />
-          <View style={styles.signalTextColumn}>
-            <Animated.Text
-              style={[
-                styles.rssiText,
-                { color: getSignalColor(currentRssi), opacity },
-              ]}
-            >
-              {currentRssi !== null ? `${currentRssi} dBm` : "No Signal"}
-            </Animated.Text>
-            <View
-              style={[
-                styles.proximityPill,
-                { backgroundColor: getSignalColor(currentRssi) + "22" },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.proximityText,
-                  { color: getSignalColor(currentRssi) },
-                ]}
-              >
-                {getProximity(currentRssi)}
-              </Text>
-            </View>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>{object.name}</Text>
+        <Text style={styles.headerSubtitle}>Device Connection Status</Text>
+      </View>
+
+      <View style={styles.mainContent}>
+        <View
+          style={[
+            styles.signalCard,
+            {
+              backgroundColor: getSignalColor(currentRssi) + "08",
+              borderColor: getSignalColor(currentRssi) + "20",
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: getSignalColor(currentRssi) + "15" },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name={getSignalIcon(currentRssi)}
+              size={48}
+              color={getSignalColor(currentRssi)}
+            />
+          </View>
+
+          <Animated.Text
+            style={[
+              styles.rssiValue,
+              { color: getSignalColor(currentRssi), opacity },
+            ]}
+          >
+            {currentRssi !== null ? `${currentRssi} dBm` : "No Signal"}
+          </Animated.Text>
+
+          <View
+            style={[
+              styles.proximityBadge,
+              { backgroundColor: getSignalColor(currentRssi) },
+            ]}
+          >
+            <Text style={styles.proximityText}>
+              {getProximity(currentRssi)}
+            </Text>
           </View>
         </View>
       </View>
 
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            buzzerState && styles.actionButtonActive,
-          ]}
-          onPress={handleBuzzerPress}
-          disabled={buzzerLoading}
-        >
-          {buzzerLoading ? (
-            <Animated.View style={{ opacity }}>
-              <Ionicons name="volume-high" size={32} color="#247eff" />
-            </Animated.View>
-          ) : (
-            <Ionicons
-              name={buzzerState ? "volume-high" : "volume-medium"}
-              size={32}
-              color={buzzerState ? "#ff4444" : "#247eff"}
-            />
-          )}
-          <Text
+      <View style={styles.controlsContainer}>
+        <View style={styles.controlsRow}>
+          <TouchableOpacity
             style={[
-              styles.actionLabel,
-              { color: buzzerState ? "#ff4444" : "#247eff" },
+              styles.modernButton,
+              buzzerState ? styles.buzzerActiveButton : styles.inactiveButton,
             ]}
+            onPress={handleBuzzerPress}
+            disabled={buzzerLoading}
           >
-            {buzzerLoading
-              ? "Loading..."
-              : buzzerState
-              ? "Buzzer ON"
-              : "Buzzer"}
-          </Text>
-        </TouchableOpacity>
+            {buzzerLoading ? (
+              <Animated.View style={{ opacity }}>
+                <Ionicons
+                  name="volume-high-outline"
+                  size={24}
+                  color="#247eff"
+                />
+              </Animated.View>
+            ) : (
+              <Ionicons
+                name={buzzerState ? "volume-high" : "volume-high-outline"}
+                size={24}
+                color={buzzerState ? "#ffffff" : "#247eff"}
+              />
+            )}
+            <Text
+              style={[
+                styles.buttonText,
+                { color: buzzerState ? "#ffffff" : "#247eff" },
+              ]}
+            >
+              {buzzerLoading
+                ? "Loading..."
+                : buzzerState
+                ? "Buzzer ON"
+                : "Buzzer"}
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            ledState && styles.actionButtonActiveLed,
-          ]}
-          onPress={handleLightPress}
-          disabled={ledLoading}
-        >
-          {ledLoading ? (
-            <Animated.View style={{ opacity }}>
-              <Ionicons name="flash" size={32} color="#247eff" />
-            </Animated.View>
-          ) : (
-            <Ionicons
-              name={ledState ? "flash" : "flash-outline"}
-              size={32}
-              color={ledState ? "#ffd600" : "#247eff"}
-            />
-          )}
-          <Text
+          <TouchableOpacity
             style={[
-              styles.actionLabel,
-              { color: ledState ? "#ffd600" : "#247eff" },
+              styles.modernButton,
+              ledState ? styles.ledActiveButton : styles.inactiveButton,
             ]}
+            onPress={handleLightPress}
+            disabled={ledLoading}
           >
-            {ledLoading ? "Loading..." : ledState ? "LED ON" : "LED"}
-          </Text>
-        </TouchableOpacity>
+            {ledLoading ? (
+              <Animated.View style={{ opacity }}>
+                <Ionicons name="flash-outline" size={24} color="#247eff" />
+              </Animated.View>
+            ) : (
+              <Ionicons
+                name={ledState ? "flash" : "flash-outline"}
+                size={24}
+                color={ledState ? "#ffffff" : "#247eff"}
+              />
+            )}
+            <Text
+              style={[
+                styles.buttonText,
+                { color: ledState ? "#ffffff" : "#247eff" },
+              ]}
+            >
+              {ledLoading ? "Loading..." : ledState ? "LED ON" : "LED"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Modal
@@ -319,15 +338,15 @@ export default function SearchActions({
         onRequestClose={handleDisconnectModalClose}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Ionicons name="alert-circle" size={50} color="red" />
-            <Text style={[styles.modalTitle, { color: "red" }]}>
-              Connection Lost
-            </Text>
-            <Text style={styles.modalText}>
+          <View style={styles.modernModal}>
+            <View style={styles.modalIconContainer}>
+              <Ionicons name="alert-circle" size={48} color="#ef4444" />
+            </View>
+            <Text style={styles.modalTitle}>Connection Lost</Text>
+            <Text style={styles.modalDescription}>
               You have been disconnected due to distance limitations or
               Bluetooth is off. Ensure you are within 10–15 meters from the
-              microcontroller and keep the Bluetooth on.
+              microcontroller and keep Bluetooth on.
             </Text>
             <TouchableOpacity
               style={styles.modalButton}
@@ -345,121 +364,171 @@ export default function SearchActions({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    justifyContent: "space-between",
+    backgroundColor: "#f8fafc",
   },
-  centeredContent: {
+  header: {
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#1e293b",
+    marginBottom: 8,
+    textAlign: "center",
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "#64748b",
+    fontWeight: "500",
+  },
+  mainContent: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
+    paddingHorizontal: 24,
   },
-  objectName: {
-    color: "#222",
-    fontWeight: "bold",
-    fontSize: 34,
-    marginBottom: 30,
-    textAlign: "center",
-    letterSpacing: 0.5,
-  },
-  signalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f7f7f8",
+  signalCard: {
+    backgroundColor: "#ffffff",
     borderRadius: 24,
-    paddingVertical: 18,
-    paddingHorizontal: 28,
-    elevation: 2,
+    padding: 32,
+    alignItems: "center",
+    borderWidth: 2,
     shadowColor: "#000",
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  signalTextColumn: {
-    alignItems: "flex-start",
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
   },
-  rssiText: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 8,
-    letterSpacing: 0.5,
+  rssiValue: {
+    fontSize: 36,
+    fontWeight: "800",
+    marginBottom: 16,
+    letterSpacing: -1,
   },
-  proximityPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 999,
-    alignSelf: "flex-start",
-    marginTop: 2,
+  proximityBadge: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 8,
   },
   proximityText: {
-    fontSize: 17,
+    color: "#ffffff",
+    fontSize: 14,
     fontWeight: "600",
-    textTransform: "capitalize",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
-  bottomBar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
+  controlsContainer: {
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+    paddingBottom: 32,
     borderTopWidth: 1,
-    borderTopColor: "#eaeaea",
-    paddingVertical: 18,
-    paddingBottom: 26,
-    backgroundColor: "#fff",
+    borderTopColor: "#e2e8f0",
   },
-  actionButton: {
-    alignItems: "center",
+  controlsRow: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  modernButton: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 12,
+    height: 64,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  actionButtonActive: {
-    backgroundColor: "#ffebee",
+  inactiveButton: {
+    backgroundColor: "#ffffff",
+    borderColor: "#e2e8f0",
   },
-  actionButtonActiveLed: {
-    backgroundColor: "#fffbeb",
+  buzzerActiveButton: {
+    backgroundColor: "#ef4444",
+    borderColor: "#ef4444",
   },
-  actionLabel: {
-    marginTop: 6,
+  ledActiveButton: {
+    backgroundColor: "#eab308",
+    borderColor: "#eab308",
+  },
+  buttonText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#247eff",
+    marginTop: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 24,
   },
-  modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 24,
+  modernModal: {
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 32,
     alignItems: "center",
-    width: "80%",
-    maxWidth: 320,
+    width: "100%",
+    maxWidth: 340,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 16,
+  },
+  modalIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#fef2f2",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
   },
   modalTitle: {
     fontSize: 24,
-    fontWeight: "600",
-    color: "#247eff",
-    marginBottom: 12,
-  },
-  modalText: {
-    fontSize: 16,
-    color: "#333333",
+    fontWeight: "700",
+    color: "#ef4444",
+    marginBottom: 16,
     textAlign: "center",
-    marginBottom: 24,
+  },
+  modalDescription: {
+    fontSize: 16,
+    color: "#64748b",
+    textAlign: "center",
     lineHeight: 24,
+    marginBottom: 32,
   },
   modalButton: {
     backgroundColor: "#247eff",
-    paddingVertical: 12,
+    paddingVertical: 16,
     paddingHorizontal: 32,
-    borderRadius: 25,
+    borderRadius: 16,
     width: "100%",
+    shadowColor: "#247eff",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   modalButtonText: {
-    color: "#FFFFFF",
+    color: "#ffffff",
     fontSize: 16,
     fontWeight: "600",
     textAlign: "center",
