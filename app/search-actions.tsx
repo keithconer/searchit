@@ -1,64 +1,55 @@
-"use client";
+"use client"
 
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { Buffer } from "buffer";
-import { useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  Animated,
-  Image,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import type { Device } from "react-native-ble-plx";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
+import { Buffer } from "buffer"
+import { useEffect, useRef, useState } from "react"
+import { Alert, Animated, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import type { Device } from "react-native-ble-plx"
+import { SafeAreaView } from "react-native-safe-area-context"
 
 type ObjectType = {
-  name: string;
-  description: string;
-  tag: string;
-  password: string;
-  deviceId?: string;
-};
-
-interface SearchActionsProps {
-  object: ObjectType;
-  rssi: number | null;
-  onBack: () => void;
-  connectedDevice: Device | null;
-  bluetoothOff?: boolean;
+  name: string
+  description: string
+  tag: string
+  password: string
+  deviceId?: string
 }
 
-const SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
-const CHARACTERISTIC_UUID = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
-const WRITE_CHARACTERISTIC_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
+interface SearchActionsProps {
+  object: ObjectType
+  rssi: number | null
+  onBack: () => void
+  connectedDevice: Device | null
+  bluetoothOff?: boolean
+}
+
+const SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
+const CHARACTERISTIC_UUID = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
+const WRITE_CHARACTERISTIC_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 
 const getProximity = (rssi: number | null) => {
-  if (rssi === null) return "";
-  if (rssi >= -55) return "Super Near";
-  if (rssi >= -65) return "Near";
-  if (rssi >= -80) return "Far";
-  return "Super Far";
-};
+  if (rssi === null) return ""
+  if (rssi >= -55) return "Super Near"
+  if (rssi >= -65) return "Near"
+  if (rssi >= -80) return "Far"
+  return "Super Far"
+}
 
 const getSignalIcon = (rssi: number | null) => {
-  if (rssi === null) return "signal-off";
-  if (rssi >= -55) return "signal-cellular-3";
-  if (rssi >= -65) return "signal-cellular-2";
-  if (rssi >= -80) return "signal-cellular-1";
-  return "signal-cellular-outline";
-};
+  if (rssi === null) return "signal-off"
+  if (rssi >= -55) return "signal-cellular-3"
+  if (rssi >= -65) return "signal-cellular-2"
+  if (rssi >= -80) return "signal-cellular-1"
+  return "signal-cellular-outline"
+}
 
 const getSignalColor = (rssi: number | null) => {
-  if (rssi === null) return "#9ca3af";
-  if (rssi >= -55) return "#10b981"; // Green for excellent signal
-  if (rssi >= -65) return "#f59e0b"; // Yellow for good signal
-  if (rssi >= -80) return "#f97316"; // Orange for fair signal
-  return "#ef4444"; // Red for poor signal
-};
+  if (rssi === null) return "#9ca3af"
+  if (rssi >= -55) return "#10b981" // Green for excellent signal
+  if (rssi >= -65) return "#f59e0b" // Yellow for good signal
+  if (rssi >= -80) return "#f97316" // Orange for fair signal
+  return "#ef4444" // Red for poor signal
+}
 
 export default function SearchActions({
   object,
@@ -67,38 +58,38 @@ export default function SearchActions({
   connectedDevice,
   bluetoothOff = false,
 }: SearchActionsProps) {
-  const opacity = useRef(new Animated.Value(1)).current;
-  const shakeAnimation = useRef(new Animated.Value(0)).current;
-  const [currentRssi, setCurrentRssi] = useState(rssi);
-  const [disconnectModalVisible, setDisconnectModalVisible] = useState(false);
+  const opacity = useRef(new Animated.Value(1)).current
+  const shakeAnimation = useRef(new Animated.Value(0)).current
+  const [currentRssi, setCurrentRssi] = useState(rssi)
+  const [disconnectModalVisible, setDisconnectModalVisible] = useState(false)
 
-  const [buzzerState, setBuzzerState] = useState(false);
-  const [buzzerLoading, setBuzzerLoading] = useState(false);
+  const [buzzerState, setBuzzerState] = useState(false)
+  const [buzzerLoading, setBuzzerLoading] = useState(false)
 
-  const [ledState, setLedState] = useState(false);
-  const [ledLoading, setLedLoading] = useState(false);
+  const [ledState, setLedState] = useState(false)
+  const [ledLoading, setLedLoading] = useState(false)
 
   useEffect(() => {
-    if (!connectedDevice) return;
+    if (!connectedDevice) return
     const interval = setInterval(async () => {
       try {
-        const updatedDevice = await connectedDevice.readRSSI();
-        const rssiValue = updatedDevice.rssi;
-        if (typeof rssiValue === "number") setCurrentRssi(rssiValue);
+        const updatedDevice = await connectedDevice.readRSSI()
+        const rssiValue = updatedDevice.rssi
+        if (typeof rssiValue === "number") setCurrentRssi(rssiValue)
 
         if (rssiValue === null || rssiValue < -90) {
-          setDisconnectModalVisible(true);
+          setDisconnectModalVisible(true)
         }
       } catch {
-        setDisconnectModalVisible(true);
+        setDisconnectModalVisible(true)
       }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [connectedDevice]);
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [connectedDevice])
 
   useEffect(() => {
-    if (bluetoothOff) setDisconnectModalVisible(true);
-  }, [bluetoothOff]);
+    if (bluetoothOff) setDisconnectModalVisible(true)
+  }, [bluetoothOff])
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -113,53 +104,58 @@ export default function SearchActions({
           duration: 500,
           useNativeDriver: true,
         }),
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [opacity]);
+      ]),
+    )
+    animation.start()
+    return () => animation.stop()
+  }, [opacity])
 
   useEffect(() => {
     if (buzzerState || ledState) {
       const shakeSequence = Animated.loop(
         Animated.sequence([
           Animated.timing(shakeAnimation, {
-            toValue: 10,
-            duration: 100,
+            toValue: 15, // Increased from 10 to 15 for more noticeable movement
+            duration: 80, // Faster timing for more energetic shake
             useNativeDriver: true,
           }),
           Animated.timing(shakeAnimation, {
-            toValue: -10,
-            duration: 100,
+            toValue: -15, // Increased from -10 to -15
+            duration: 80,
             useNativeDriver: true,
           }),
           Animated.timing(shakeAnimation, {
-            toValue: 10,
-            duration: 100,
+            toValue: 15,
+            duration: 80,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnimation, {
+            toValue: -8, // Added extra shake for more realistic effect
+            duration: 60,
             useNativeDriver: true,
           }),
           Animated.timing(shakeAnimation, {
             toValue: 0,
-            duration: 100,
+            duration: 80,
             useNativeDriver: true,
           }),
-          Animated.delay(400), // Pause between rings like a phone
-        ])
-      );
-      shakeSequence.start();
-      return () => shakeSequence.stop();
+          Animated.delay(300), // Reduced delay from 400 to 300 for more frequent shaking
+        ]),
+      )
+      shakeSequence.start()
+      return () => shakeSequence.stop()
     } else {
       // Reset animation when inactive
       Animated.timing(shakeAnimation, {
         toValue: 0,
         duration: 200,
         useNativeDriver: true,
-      }).start();
+      }).start()
     }
-  }, [buzzerState, ledState, shakeAnimation]);
+  }, [buzzerState, ledState, shakeAnimation])
 
   useEffect(() => {
-    if (!connectedDevice) return;
+    if (!connectedDevice) return
 
     const setupNotifications = async () => {
       try {
@@ -168,87 +164,84 @@ export default function SearchActions({
           CHARACTERISTIC_UUID,
           (error, characteristic) => {
             if (error) {
-              console.log("Notification error:", error);
-              return;
+              console.log("Notification error:", error)
+              return
             }
 
             if (characteristic?.value) {
-              const response = Buffer.from(
-                characteristic.value,
-                "base64"
-              ).toString("utf8");
+              const response = Buffer.from(characteristic.value, "base64").toString("utf8")
 
-              console.log("Received response:", response);
+              console.log("Received response:", response)
 
               if (response === "BUZZER_ON") {
-                setBuzzerState(true);
-                setBuzzerLoading(false);
+                setBuzzerState(true)
+                setBuzzerLoading(false)
               } else if (response === "BUZZER_OFF") {
-                setBuzzerState(false);
-                setBuzzerLoading(false);
+                setBuzzerState(false)
+                setBuzzerLoading(false)
               } else if (response === "LED_ON") {
-                setLedState(true);
-                setLedLoading(false);
+                setLedState(true)
+                setLedLoading(false)
               } else if (response === "LED_OFF") {
-                setLedState(false);
-                setLedLoading(false);
+                setLedState(false)
+                setLedLoading(false)
               }
             }
-          }
-        );
+          },
+        )
       } catch (error) {
-        console.log("Failed to setup notifications:", error);
+        console.log("Failed to setup notifications:", error)
       }
-    };
+    }
 
-    setupNotifications();
-  }, [connectedDevice]);
+    setupNotifications()
+  }, [connectedDevice])
 
   const sendToggleCommand = async (command: string) => {
     if (!connectedDevice) {
-      Alert.alert("Error", "Device not connected");
-      return;
+      Alert.alert("Error", "Device not connected")
+      return
     }
 
-    const base64Command = Buffer.from(command, "utf8").toString("base64");
+    const base64Command = Buffer.from(command, "utf8").toString("base64")
 
     await connectedDevice.writeCharacteristicWithResponseForService(
       SERVICE_UUID,
       WRITE_CHARACTERISTIC_UUID,
-      base64Command
-    );
-  };
+      base64Command,
+    )
+  }
 
   const handleBuzzerPress = async () => {
-    setBuzzerLoading(true);
+    setBuzzerLoading(true)
     try {
-      await sendToggleCommand("BUZZ_TOGGLE");
-      setTimeout(() => setBuzzerLoading(false), 3000); // Fallback
+      await sendToggleCommand("BUZZ_TOGGLE")
+      setTimeout(() => setBuzzerLoading(false), 3000) // Fallback
     } catch (error) {
-      console.log("Buzzer error:", error);
-      setBuzzerLoading(false);
-      Alert.alert("Error", "Failed to control buzzer");
+      console.log("Buzzer error:", error)
+      setBuzzerLoading(false)
+      Alert.alert("Error", "Failed to control buzzer")
     }
-  };
+  }
 
   const handleLightPress = async () => {
-    setLedLoading(true);
+    setLedLoading(true)
     try {
-      await sendToggleCommand("LED_TOGGLE");
-      setTimeout(() => setLedLoading(false), 3000); // Fallback
+      await sendToggleCommand("LED_TOGGLE")
+      setTimeout(() => setLedLoading(false), 3000) // Fallback
     } catch (error) {
-      console.log("LED error:", error);
-      setLedLoading(false);
-      Alert.alert("Error", "Failed to control LED");
+      console.log("LED error:", error)
+      setLedLoading(false)
+      Alert.alert("Error", "Failed to control LED")
     }
-  };
+  }
 
   const handleDisconnectModalClose = () => {
-    setDisconnectModalVisible(false);
-    setBuzzerState(false);
-    setLedState(false);
-    onBack();
-  };
+    setDisconnectModalVisible(false)
+    setBuzzerState(false)
+    setLedState(false)
+    onBack()
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -258,57 +251,34 @@ export default function SearchActions({
       </View>
 
       <View style={styles.imageContainer}>
-        <Animated.View
-          style={[
-            styles.imageWrapper,
-            {
-              transform: [{ translateX: shakeAnimation }],
-            },
-          ]}
-        >
-          <Image
-            source={require("../assets/images/shakableImage.png")}
-            style={styles.shakableImage}
-          />
+        <Animated.View style={[styles.imageWrapper, { transform: [{ translateX: shakeAnimation }] }]}>
+          <Image source={require("../assets/images/shakableImage2.png")} style={styles.shakableImage} />
         </Animated.View>
       </View>
 
       <View style={styles.bottomSection}>
         <View style={styles.compactSignalCard}>
           <View style={styles.compactIconContainer}>
-            <MaterialCommunityIcons
-              name={getSignalIcon(currentRssi)}
-              size={20}
-              color={getSignalColor(currentRssi)}
-            />
+            <MaterialCommunityIcons name={getSignalIcon(currentRssi)} size={20} color={getSignalColor(currentRssi)} />
           </View>
           <View style={styles.signalInfo}>
             <Animated.Text style={[styles.compactRssiValue, { opacity }]}>
               {currentRssi !== null ? `${currentRssi} dBm` : "No Signal"}
             </Animated.Text>
-            <Text style={styles.compactProximityText}>
-              {getProximity(currentRssi)}
-            </Text>
+            <Text style={styles.compactProximityText}>{getProximity(currentRssi)}</Text>
           </View>
         </View>
 
         <View style={styles.controlsContainer}>
           <View style={styles.controlsRow}>
             <TouchableOpacity
-              style={[
-                styles.modernButton,
-                buzzerState ? styles.buzzerActiveButton : styles.inactiveButton,
-              ]}
+              style={[styles.modernButton, buzzerState ? styles.buzzerActiveButton : styles.inactiveButton]}
               onPress={handleBuzzerPress}
               disabled={buzzerLoading}
             >
               {buzzerLoading ? (
                 <Animated.View style={{ opacity }}>
-                  <Ionicons
-                    name="volume-high-outline"
-                    size={24}
-                    color="#247eff"
-                  />
+                  <Ionicons name="volume-high-outline" size={24} color="#247eff" />
                 </Animated.View>
               ) : (
                 <Ionicons
@@ -317,25 +287,13 @@ export default function SearchActions({
                   color={buzzerState ? "#ffffff" : "#247eff"}
                 />
               )}
-              <Text
-                style={[
-                  styles.buttonText,
-                  { color: buzzerState ? "#ffffff" : "#247eff" },
-                ]}
-              >
-                {buzzerLoading
-                  ? "Loading..."
-                  : buzzerState
-                  ? "Buzzer ON"
-                  : "Buzzer"}
+              <Text style={[styles.buttonText, { color: buzzerState ? "#ffffff" : "#247eff" }]}>
+                {buzzerLoading ? "Loading..." : buzzerState ? "Buzzer ON" : "Buzzer"}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[
-                styles.modernButton,
-                ledState ? styles.ledActiveButton : styles.inactiveButton,
-              ]}
+              style={[styles.modernButton, ledState ? styles.ledActiveButton : styles.inactiveButton]}
               onPress={handleLightPress}
               disabled={ledLoading}
             >
@@ -350,12 +308,7 @@ export default function SearchActions({
                   color={ledState ? "#ffffff" : "#247eff"}
                 />
               )}
-              <Text
-                style={[
-                  styles.buttonText,
-                  { color: ledState ? "#ffffff" : "#247eff" },
-                ]}
-              >
+              <Text style={[styles.buttonText, { color: ledState ? "#ffffff" : "#247eff" }]}>
                 {ledLoading ? "Loading..." : ledState ? "LED ON" : "LED"}
               </Text>
             </TouchableOpacity>
@@ -376,21 +329,17 @@ export default function SearchActions({
             </View>
             <Text style={styles.modalTitle}>Connection Lost</Text>
             <Text style={styles.modalDescription}>
-              You have been disconnected due to distance limitations or
-              Bluetooth is off. Ensure you are within 10–15 meters from the
-              microcontroller and keep Bluetooth on.
+              You have been disconnected due to distance limitations or Bluetooth is off. Ensure you are within 10–15
+              meters from the microcontroller and keep Bluetooth on.
             </Text>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={handleDisconnectModalClose}
-            >
+            <TouchableOpacity style={styles.modalButton} onPress={handleDisconnectModalClose}>
               <Text style={styles.modalButtonText}>Go Back</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
     </SafeAreaView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -563,4 +512,4 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     textAlign: "center",
   },
-});
+})
