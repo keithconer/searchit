@@ -60,6 +60,8 @@ export default function SearchActions({
 }: SearchActionsProps) {
   const opacity = useRef(new Animated.Value(1)).current
   const shakeAnimation = useRef(new Animated.Value(0)).current
+  const rotateAnimation = useRef(new Animated.Value(0)).current
+  const scaleAnimation = useRef(new Animated.Value(1)).current
   const [currentRssi, setCurrentRssi] = useState(rssi)
   const [disconnectModalVisible, setDisconnectModalVisible] = useState(false)
 
@@ -92,67 +94,144 @@ export default function SearchActions({
   }, [bluetoothOff])
 
   useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 0.3,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ]),
-    )
-    animation.start()
-    return () => animation.stop()
-  }, [opacity])
-
-  useEffect(() => {
+    console.log("[v0] Animation effect triggered - buzzerState:", buzzerState, "ledState:", ledState) // Added animation debug logging
     if (buzzerState || ledState) {
+      console.log("[v0] Starting shake animation sequence")
       const shakeSequence = Animated.loop(
-        Animated.sequence([
-          Animated.timing(shakeAnimation, {
-            toValue: 15, // Increased from 10 to 15 for more noticeable movement
-            duration: 80, // Faster timing for more energetic shake
-            useNativeDriver: true,
-          }),
-          Animated.timing(shakeAnimation, {
-            toValue: -15, // Increased from -10 to -15
-            duration: 80,
-            useNativeDriver: true,
-          }),
-          Animated.timing(shakeAnimation, {
-            toValue: 15,
-            duration: 80,
-            useNativeDriver: true,
-          }),
-          Animated.timing(shakeAnimation, {
-            toValue: -8, // Added extra shake for more realistic effect
-            duration: 60,
-            useNativeDriver: true,
-          }),
-          Animated.timing(shakeAnimation, {
-            toValue: 0,
-            duration: 80,
-            useNativeDriver: true,
-          }),
-          Animated.delay(300), // Reduced delay from 400 to 300 for more frequent shaking
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(shakeAnimation, {
+              toValue: 20,
+              duration: 60,
+              useNativeDriver: true,
+            }),
+            Animated.timing(shakeAnimation, {
+              toValue: -20,
+              duration: 60,
+              useNativeDriver: true,
+            }),
+            Animated.timing(shakeAnimation, {
+              toValue: 15,
+              duration: 50,
+              useNativeDriver: true,
+            }),
+            Animated.timing(shakeAnimation, {
+              toValue: -15,
+              duration: 50,
+              useNativeDriver: true,
+            }),
+            Animated.timing(shakeAnimation, {
+              toValue: 8,
+              duration: 40,
+              useNativeDriver: true,
+            }),
+            Animated.timing(shakeAnimation, {
+              toValue: -8,
+              duration: 40,
+              useNativeDriver: true,
+            }),
+            Animated.timing(shakeAnimation, {
+              toValue: 0,
+              duration: 60,
+              useNativeDriver: true,
+            }),
+            Animated.delay(200),
+          ]),
+          Animated.sequence([
+            Animated.timing(rotateAnimation, {
+              toValue: 0.1,
+              duration: 80,
+              useNativeDriver: true,
+            }),
+            Animated.timing(rotateAnimation, {
+              toValue: -0.1,
+              duration: 80,
+              useNativeDriver: true,
+            }),
+            Animated.timing(rotateAnimation, {
+              toValue: 0.08,
+              duration: 70,
+              useNativeDriver: true,
+            }),
+            Animated.timing(rotateAnimation, {
+              toValue: -0.08,
+              duration: 70,
+              useNativeDriver: true,
+            }),
+            Animated.timing(rotateAnimation, {
+              toValue: 0.05,
+              duration: 60,
+              useNativeDriver: true,
+            }),
+            Animated.timing(rotateAnimation, {
+              toValue: -0.05,
+              duration: 60,
+              useNativeDriver: true,
+            }),
+            Animated.timing(rotateAnimation, {
+              toValue: 0,
+              duration: 80,
+              useNativeDriver: true,
+            }),
+            Animated.delay(200),
+          ]),
+          Animated.sequence([
+            Animated.timing(scaleAnimation, {
+              toValue: 1.05,
+              duration: 100,
+              useNativeDriver: true,
+            }),
+            Animated.timing(scaleAnimation, {
+              toValue: 0.98,
+              duration: 100,
+              useNativeDriver: true,
+            }),
+            Animated.timing(scaleAnimation, {
+              toValue: 1.03,
+              duration: 80,
+              useNativeDriver: true,
+            }),
+            Animated.timing(scaleAnimation, {
+              toValue: 0.99,
+              duration: 80,
+              useNativeDriver: true,
+            }),
+            Animated.timing(scaleAnimation, {
+              toValue: 1.01,
+              duration: 60,
+              useNativeDriver: true,
+            }),
+            Animated.timing(scaleAnimation, {
+              toValue: 1,
+              duration: 100,
+              useNativeDriver: true,
+            }),
+            Animated.delay(200),
+          ]),
         ]),
       )
       shakeSequence.start()
       return () => shakeSequence.stop()
     } else {
-      // Reset animation when inactive
-      Animated.timing(shakeAnimation, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start()
+      Animated.parallel([
+        Animated.timing(shakeAnimation, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rotateAnimation, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnimation, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start()
     }
-  }, [buzzerState, ledState, shakeAnimation])
+  }, [buzzerState, ledState, shakeAnimation, rotateAnimation, scaleAnimation])
 
   useEffect(() => {
     if (!connectedDevice) return
@@ -213,25 +292,41 @@ export default function SearchActions({
   }
 
   const handleBuzzerPress = async () => {
+    console.log("[v0] Buzzer button pressed!") // Added debug logging
     setBuzzerLoading(true)
+
+    const newBuzzerState = !buzzerState
+    setBuzzerState(newBuzzerState)
+    console.log("[v0] Buzzer state toggled to:", newBuzzerState)
+
     try {
       await sendToggleCommand("BUZZ_TOGGLE")
+      console.log("[v0] BUZZ_TOGGLE command sent successfully")
       setTimeout(() => setBuzzerLoading(false), 3000) // Fallback
     } catch (error) {
-      console.log("Buzzer error:", error)
+      console.log("[v0] Buzzer error:", error)
       setBuzzerLoading(false)
+      setBuzzerState(!newBuzzerState) // Reset state on error
       Alert.alert("Error", "Failed to control buzzer")
     }
   }
 
   const handleLightPress = async () => {
+    console.log("[v0] LED button pressed!") // Added debug logging
     setLedLoading(true)
+
+    const newLedState = !ledState
+    setLedState(newLedState)
+    console.log("[v0] LED state toggled to:", newLedState)
+
     try {
       await sendToggleCommand("LED_TOGGLE")
+      console.log("[v0] LED_TOGGLE command sent successfully")
       setTimeout(() => setLedLoading(false), 3000) // Fallback
     } catch (error) {
-      console.log("LED error:", error)
+      console.log("[v0] LED error:", error)
       setLedLoading(false)
+      setLedState(!newLedState) // Reset state on error
       Alert.alert("Error", "Failed to control LED")
     }
   }
@@ -251,7 +346,23 @@ export default function SearchActions({
       </View>
 
       <View style={styles.imageContainer}>
-        <Animated.View style={[styles.imageWrapper, { transform: [{ translateX: shakeAnimation }] }]}>
+        <Animated.View
+          style={[
+            styles.imageWrapper,
+            {
+              transform: [
+                { translateX: shakeAnimation },
+                {
+                  rotate: rotateAnimation.interpolate({
+                    inputRange: [-1, 1],
+                    outputRange: ["-10deg", "10deg"],
+                  }),
+                },
+                { scale: scaleAnimation },
+              ],
+            },
+          ]}
+        >
           <Image source={require("../assets/images/shakableImage2.png")} style={styles.shakableImage} />
         </Animated.View>
       </View>
@@ -272,7 +383,7 @@ export default function SearchActions({
         <View style={styles.controlsContainer}>
           <View style={styles.controlsRow}>
             <TouchableOpacity
-              style={[styles.modernButton, buzzerState ? styles.buzzerActiveButton : styles.inactiveButton]}
+              style={[styles.modernButton, styles.inactiveButton]}
               onPress={handleBuzzerPress}
               disabled={buzzerLoading}
             >
@@ -281,19 +392,15 @@ export default function SearchActions({
                   <Ionicons name="volume-high-outline" size={24} color="#247eff" />
                 </Animated.View>
               ) : (
-                <Ionicons
-                  name={buzzerState ? "volume-high" : "volume-high-outline"}
-                  size={24}
-                  color={buzzerState ? "#ffffff" : "#247eff"}
-                />
+                <Ionicons name={buzzerState ? "volume-high" : "volume-high-outline"} size={24} color="#247eff" />
               )}
-              <Text style={[styles.buttonText, { color: buzzerState ? "#ffffff" : "#247eff" }]}>
-                {buzzerLoading ? "Loading..." : buzzerState ? "Buzzer ON" : "Buzzer"}
+              <Text style={[styles.buttonText, { color: "#247eff" }]}>
+                {buzzerLoading ? "Loading..." : buzzerState ? "Buzzer ON" : "Buzzer OFF"}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.modernButton, ledState ? styles.ledActiveButton : styles.inactiveButton]}
+              style={[styles.modernButton, styles.inactiveButton]}
               onPress={handleLightPress}
               disabled={ledLoading}
             >
@@ -302,14 +409,10 @@ export default function SearchActions({
                   <Ionicons name="flash-outline" size={24} color="#247eff" />
                 </Animated.View>
               ) : (
-                <Ionicons
-                  name={ledState ? "flash" : "flash-outline"}
-                  size={24}
-                  color={ledState ? "#ffffff" : "#247eff"}
-                />
+                <Ionicons name={ledState ? "flash" : "flash-outline"} size={24} color="#247eff" />
               )}
-              <Text style={[styles.buttonText, { color: ledState ? "#ffffff" : "#247eff" }]}>
-                {ledLoading ? "Loading..." : ledState ? "LED ON" : "LED"}
+              <Text style={[styles.buttonText, { color: "#247eff" }]}>
+                {ledLoading ? "Loading..." : ledState ? "LED ON" : "LED OFF"}
               </Text>
             </TouchableOpacity>
           </View>
