@@ -62,6 +62,7 @@ export default function SearchActions({
   const shakeAnimation = useRef(new Animated.Value(0)).current
   const rotateAnimation = useRef(new Animated.Value(0)).current
   const scaleAnimation = useRef(new Animated.Value(1)).current
+  const glowAnimation = useRef(new Animated.Value(0)).current
   const [currentRssi, setCurrentRssi] = useState(rssi)
   const [disconnectModalVisible, setDisconnectModalVisible] = useState(false)
 
@@ -94,8 +95,9 @@ export default function SearchActions({
   }, [bluetoothOff])
 
   useEffect(() => {
-    console.log("[v0] Animation effect triggered - buzzerState:", buzzerState, "ledState:", ledState) // Added animation debug logging
-    if (buzzerState || ledState) {
+    console.log("[v0] Animation effect triggered - buzzerState:", buzzerState, "ledState:", ledState)
+
+    if (buzzerState) {
       console.log("[v0] Starting shake animation sequence")
       const shakeSequence = Animated.loop(
         Animated.parallel([
@@ -231,7 +233,35 @@ export default function SearchActions({
         }),
       ]).start()
     }
-  }, [buzzerState, ledState, shakeAnimation, rotateAnimation, scaleAnimation])
+  }, [buzzerState, shakeAnimation, rotateAnimation, scaleAnimation])
+
+  useEffect(() => {
+    if (ledState) {
+      console.log("[v0] Starting LED glow animation")
+      const glowSequence = Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnimation, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowAnimation, {
+            toValue: 0.3,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ]),
+      )
+      glowSequence.start()
+      return () => glowSequence.stop()
+    } else {
+      Animated.timing(glowAnimation, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start()
+    }
+  }, [ledState, glowAnimation])
 
   useEffect(() => {
     if (!connectedDevice) return
@@ -340,29 +370,22 @@ export default function SearchActions({
 
   return (
     <SafeAreaView style={styles.container}>
+      <Animated.View
+        style={[
+          styles.glowLight,
+          {
+            opacity: glowAnimation,
+          },
+        ]}
+      />
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{object.name}</Text>
         <Text style={styles.headerSubtitle}>Device Connection Status</Text>
       </View>
 
       <View style={styles.imageContainer}>
-        <Animated.View
-          style={[
-            styles.imageWrapper,
-            {
-              transform: [
-                { translateX: shakeAnimation },
-                {
-                  rotate: rotateAnimation.interpolate({
-                    inputRange: [-1, 1],
-                    outputRange: ["-10deg", "10deg"],
-                  }),
-                },
-                { scale: scaleAnimation },
-              ],
-            },
-          ]}
-        >
+        <Animated.View style={[styles.imageWrapper, { transform: [{ translateX: shakeAnimation }] }]}>
           <Image source={require("../assets/images/shakableImage2.png")} style={styles.shakableImage} />
         </Animated.View>
       </View>
@@ -449,6 +472,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#ffffff",
+  },
+  glowLight: {
+    position: "absolute",
+    top: 60,
+    left: 20,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#ef4444",
+    shadowColor: "#ef4444",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
+    elevation: 8,
+    zIndex: 1000,
   },
   header: {
     paddingHorizontal: 16,
