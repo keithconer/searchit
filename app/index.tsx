@@ -812,18 +812,19 @@ export default function HomeScreen() {
             {!showForm ? (
               <View style={styles.centered}>
                 <Image
-                  source={require("@/assets/imgs/logoNew.png")}
+                  source={require("@/assets/imgs/logoNew5.png")}
                   style={styles.logo}
                 />
                 <Text style={styles.subheading}>
-                  You can add 3 specific objects to monitor
+                  You can tag 3 specific objects to track.
                 </Text>
                 <TouchableOpacity
-                  style={styles.addButton}
-                  onPress={handleShowForm}
-                >
-                  <Text style={styles.addButtonText}>+ Add Object</Text>
-                </TouchableOpacity>
+  style={styles.addButton}
+  onPress={handleShowForm}
+>
+  <Ionicons name="key-outline" size={22} color="white" />
+  <Text style={styles.addButtonText}>Start Tagging</Text>
+</TouchableOpacity>
               </View>
             ) : (
               <View style={styles.formContainer}>
@@ -1130,7 +1131,7 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View style={styles.centeredTop}>
           <Image
-            source={require("@/assets/imgs/logoNew.png")}
+            source={require("@/assets/imgs/logoNew5.png")}
             style={styles.logo}
           />
         </View>
@@ -1657,9 +1658,10 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 20 },
   containerNoPad: { flex: 1, backgroundColor: "#fff" },
+  
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   centeredTop: { alignItems: "center", marginTop: 50, marginBottom: 24 },
-  logo: { width: 80, height: 80, resizeMode: "contain", marginBottom: 10 },
+  logo: { width: 200, height: 140, resizeMode: "contain", marginBottom: 10 },
   heading: {
     fontSize: 32,
     fontWeight: "bold",
@@ -1684,7 +1686,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     borderRadius: 6,
     paddingVertical: 2,
-    marginBottom: 12,
+    marginBottom: 40,
     borderColor: "#ececec",
     borderWidth: 1,
     elevation: 1,
@@ -1729,16 +1731,15 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: "row",   // puts icon + text side by side
+    alignItems: "center",   // vertically centers them
+    justifyContent: "center", // centers the whole group
   },
   addButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
-    textAlign: "center",
-    marginLeft: 8,
+    marginLeft: 8,          // spacing between icon & text
   },
   formContainer: { flex: 1 },
   title: {
