@@ -1,57 +1,51 @@
 {
-  "expo": {
-    "name": "Search It",
-    "slug": "searchitApp",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/thumbnail.png",
-    "scheme": "searchitapp",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/thumbnail.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
-      "package": "com.keithconerrr.searchitApp",
-      "permissions": [
-        "android.permission.BLUETOOTH",
-        "android.permission.BLUETOOTH_ADMIN",
-        "android.permission.BLUETOOTH_CONNECT"
-      ]
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/thumbnail.png"
-    },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/thumbnail.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+    "expo": {
+        "name": "Search It",
+        "slug": "searchitApp",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/imgs/logo.png",
+        "scheme": "searchitapp",
+        "userInterfaceStyle": "light",
+        "newArchEnabled": true,
+        "android": {
+            "package": "com.keithconerrr.searchitApp",
+            "edgeToEdgeEnabled": true,
+            "icon": "./assets/imgs/logo.png",
+            "permissions": [
+                "android.permission.BLUETOOTH",
+                "android.permission.BLUETOOTH_ADMIN",
+                "android.permission.BLUETOOTH_CONNECT"
+            ]
+        },
+        "web": {
+            "bundler": "metro",
+            "output": "static",
+            "favicon": "./assets/imgs/logo.png"
+        },
+        "plugins": [
+            "expo-router",
+            [
+                "expo-splash-screen",
+                {
+                    "image": "./assets/images/thumbnail.png",
+                    "imageWidth": 200,
+                    "resizeMode": "contain",
+                    "backgroundColor": "#ffffff"
+                }
+            ],
+            "react-native-ble-plx"
+        ],
+        "experiments": {
+            "typedRoutes": true
+        },
+        "extra": {
+            "router": {
+                "origin": false
+            },
+            "eas": {
+                "projectId": "c5be4dd5-83fa-454b-a149-496d07b8fcba"
+            }
         }
-      ],
-      "react-native-ble-plx"
-    ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "extra": {
-      "router": {
-        "origin": false
-      },
-      "eas": {
-        "projectId": "c5be4dd5-83fa-454b-a149-496d07b8fcba"
-      }
     }
-  }
 }
