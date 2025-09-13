@@ -351,14 +351,14 @@ export default function HomeScreen() {
 
           // Look for ESP32-Locator devices
           if (device.name === ESP32_DEVICE_NAME) {
-            // Update RSSI for all objects since we can't distinguish between tags yet
-            setRssiMap((prev) => {
-              const newMap = { ...prev };
-              objects.forEach((obj) => {
-                newMap[obj.tag] = device.rssi;
-              });
-              return newMap;
-            });
+            // Find the object that owns this device ID
+            const obj = objects.find((o) => o.deviceId === device.id);
+            if (obj) {
+              setRssiMap((prev) => ({
+                ...prev,
+                [obj.tag]: device.rssi,
+              }));
+            }
           }
         }
       );
@@ -445,6 +445,26 @@ export default function HomeScreen() {
 
             // Check if this is an ESP32-Locator device
             if (device.name === ESP32_DEVICE_NAME) {
+              const targetDeviceId = selectedObjectForPairing.deviceId;
+              const isPlaceholder = targetDeviceId?.startsWith("placeholder") ?? true;
+
+              if (!isPlaceholder) {
+                // Already paired, only connect if ID matches
+                if (device.id !== targetDeviceId) {
+                  console.log("Device ID does not match the paired one");
+                  return;
+                }
+              } else {
+                // First pair, check if this ID is already used by another object
+                const otherObj = objects.find(
+                  (o) => o.deviceId === device.id && o.tag !== selectedObjectForPairing.tag
+                );
+                if (otherObj) {
+                  console.log("Device already paired to another object");
+                  return;
+                }
+              }
+
               foundDevice = true;
               bleManager.current!.stopDeviceScan();
               console.log("ESP32-Locator found, attempting to connect...");
@@ -458,18 +478,21 @@ export default function HomeScreen() {
                 await connectedDevice.discoverAllServicesAndCharacteristics();
                 console.log("Services discovered!");
 
-                // Update the object with the real device ID
-                const updatedObjects = objects.map((obj) => {
-                  if (obj.tag === selectedObjectForPairing.tag) {
-                    return { ...obj, deviceId: device.id };
-                  }
-                  return obj;
-                });
-                setObjects(updatedObjects);
-                await AsyncStorage.setItem(
-                  STORAGE_KEY,
-                  JSON.stringify(updatedObjects)
-                );
+                let updatedObjects = objects;
+                if (isPlaceholder) {
+                  // Update the object with the real device ID only if it's the first pairing
+                  updatedObjects = objects.map((obj) => {
+                    if (obj.tag === selectedObjectForPairing.tag) {
+                      return { ...obj, deviceId: device.id };
+                    }
+                    return obj;
+                  });
+                  setObjects(updatedObjects);
+                  await AsyncStorage.setItem(
+                    STORAGE_KEY,
+                    JSON.stringify(updatedObjects)
+                  );
+                }
 
                 // Set connected device for RSSI monitoring
                 setConnectedDevice(connectedDevice);
