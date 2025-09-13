@@ -252,27 +252,31 @@ export default function HomeScreen() {
   // Load saved objects and setup status on initial load
   useEffect(() => {
     (async () => {
+      const isFirstRun = await AsyncStorage.getItem("isFirstRun");
+  
+      if (isFirstRun === null) {
+        // Fresh install detected
+        // Instead of clear(), just reset what you need
+        await AsyncStorage.multiRemove([STORAGE_KEY]); 
+  
+        await AsyncStorage.setItem("isFirstRun", "false"); // this survives now
+  
+        setObjects([]);
+        setSetupDone(false);
+        setPermissionsRequested(false);
+        setShowForm(false);
+        return;
+      }
+  
+      // Not first run → load objects
       const data = await AsyncStorage.getItem(STORAGE_KEY);
       if (data) {
         const parsedObjects = JSON.parse(data);
         setObjects(parsedObjects);
-
-        // If we already have 3 objects, setup is done
+  
         if (parsedObjects.length === 3) {
           setSetupDone(true);
         }
-      }
-
-      const done = await AsyncStorage.getItem(SETUP_DONE_KEY);
-      if (done) {
-        setSetupDone(true);
-      }
-
-      const permissionsRequested = await AsyncStorage.getItem(
-        PERMISSIONS_REQUESTED_KEY
-      );
-      if (permissionsRequested === "true") {
-        setPermissionsRequested(true);
       }
     })();
   }, []);
