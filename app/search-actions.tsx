@@ -67,10 +67,7 @@ export default function SearchActions({
   const [disconnectModalVisible, setDisconnectModalVisible] = useState(false)
 
   const [buzzerState, setBuzzerState] = useState(false)
-  const [buzzerLoading, setBuzzerLoading] = useState(false)
-
   const [ledState, setLedState] = useState(false)
-  const [ledLoading, setLedLoading] = useState(false)
 
   useEffect(() => {
     if (!connectedDevice) return
@@ -95,10 +92,7 @@ export default function SearchActions({
   }, [bluetoothOff])
 
   useEffect(() => {
-    console.log("[v0] Animation effect triggered - buzzerState:", buzzerState, "ledState:", ledState)
-
     if (buzzerState) {
-      console.log("[v0] Starting shake animation sequence")
       const shakeSequence = Animated.loop(
         Animated.parallel([
           Animated.sequence([
@@ -237,7 +231,6 @@ export default function SearchActions({
 
   useEffect(() => {
     if (ledState) {
-      console.log("[v0] Starting LED glow animation")
       const glowSequence = Animated.loop(
         Animated.sequence([
           Animated.timing(glowAnimation, {
@@ -263,102 +256,36 @@ export default function SearchActions({
     }
   }, [ledState, glowAnimation])
 
-  useEffect(() => {
-    if (!connectedDevice) return
-
-    const setupNotifications = async () => {
-      try {
-        await connectedDevice.monitorCharacteristicForService(
-          SERVICE_UUID,
-          CHARACTERISTIC_UUID,
-          (error, characteristic) => {
-            if (error) {
-              console.log("Notification error:", error)
-              return
-            }
-
-            if (characteristic?.value) {
-              const response = Buffer.from(characteristic.value, "base64").toString("utf8")
-
-              console.log("Received response:", response)
-
-              if (response === "BUZZER_ON") {
-                setBuzzerState(true)
-                setBuzzerLoading(false)
-              } else if (response === "BUZZER_OFF") {
-                setBuzzerState(false)
-                setBuzzerLoading(false)
-              } else if (response === "LED_ON") {
-                setLedState(true)
-                setLedLoading(false)
-              } else if (response === "LED_OFF") {
-                setLedState(false)
-                setLedLoading(false)
-              }
-            }
-          },
-        )
-      } catch (error) {
-        console.log("Failed to setup notifications:", error)
-      }
-    }
-
-    setupNotifications()
-  }, [connectedDevice])
-
   const sendToggleCommand = async (command: string) => {
     if (!connectedDevice) {
       Alert.alert("Error", "Device not connected")
       return
     }
 
-    const base64Command = Buffer.from(command, "utf8").toString("base64")
-
-    await connectedDevice.writeCharacteristicWithResponseForService(
-      SERVICE_UUID,
-      WRITE_CHARACTERISTIC_UUID,
-      base64Command,
-    )
+    try {
+      const base64Command = Buffer.from(command, "utf8").toString("base64")
+      await connectedDevice.writeCharacteristicWithResponseForService(
+        SERVICE_UUID,
+        WRITE_CHARACTERISTIC_UUID,
+        base64Command,
+      )
+    } catch (error) {
+      // Handle error if needed
+    }
   }
 
   const handleBuzzerPress = async () => {
-    console.log("[v0] Buzzer button pressed!") // Added debug logging
-    setBuzzerLoading(true)
-
     const newBuzzerState = !buzzerState
     setBuzzerState(newBuzzerState)
-    console.log("[v0] Buzzer state toggled to:", newBuzzerState)
 
-    try {
-      await sendToggleCommand("BUZZ_TOGGLE")
-      console.log("[v0] BUZZ_TOGGLE command sent successfully")
-      setTimeout(() => setBuzzerLoading(false), 3000) // Fallback
-    } catch (error) {
-      console.log("[v0] Buzzer error:", error)
-      setBuzzerLoading(false)
-      setBuzzerState(!newBuzzerState) // Reset state on error
-      Alert.alert("Error", "Failed to control buzzer")
-    }
+    sendToggleCommand("BUZZ_TOGGLE")
   }
 
   const handleLightPress = async () => {
-    console.log("[v0] LED button pressed!") // Added debug logging
-    setLedLoading(true)
-
     const newLedState = !ledState
     setLedState(newLedState)
-    console.log("[v0] LED state toggled to:", newLedState)
 
-    try {
-      await sendToggleCommand("LED_TOGGLE")
-      console.log("[v0] LED_TOGGLE command sent successfully")
-      setTimeout(() => setLedLoading(false), 3000) // Fallback
-    } catch (error) {
-      console.log("[v0] LED error:", error)
-      setLedLoading(false)
-      setLedState(!newLedState) // Reset state on error
-      Alert.alert("Error", "Failed to control LED")
-    }
+    sendToggleCommand("LED_TOGGLE")
   }
 
   const handleDisconnectModalClose = () => {
@@ -405,38 +332,14 @@ export default function SearchActions({
 
         <View style={styles.controlsContainer}>
           <View style={styles.controlsRow}>
-            <TouchableOpacity
-              style={[styles.modernButton, styles.inactiveButton]}
-              onPress={handleBuzzerPress}
-              disabled={buzzerLoading}
-            >
-              {buzzerLoading ? (
-                <Animated.View style={{ opacity }}>
-                  <Ionicons name="volume-high-outline" size={24} color="#247eff" />
-                </Animated.View>
-              ) : (
-                <Ionicons name={buzzerState ? "volume-high" : "volume-high-outline"} size={24} color="#247eff" />
-              )}
-              <Text style={[styles.buttonText, { color: "#247eff" }]}>
-                {buzzerLoading ? "Loading..." : buzzerState ? "Buzzer ON" : "Buzzer OFF"}
-              </Text>
+            <TouchableOpacity style={[styles.modernButton, styles.inactiveButton]} onPress={handleBuzzerPress}>
+              <Ionicons name={buzzerState ? "volume-high" : "volume-high-outline"} size={24} color="#247eff" />
+              <Text style={[styles.buttonText, { color: "#247eff" }]}>{buzzerState ? "Buzzer ON" : "Buzzer OFF"}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.modernButton, styles.inactiveButton]}
-              onPress={handleLightPress}
-              disabled={ledLoading}
-            >
-              {ledLoading ? (
-                <Animated.View style={{ opacity }}>
-                  <Ionicons name="flash-outline" size={24} color="#247eff" />
-                </Animated.View>
-              ) : (
-                <Ionicons name={ledState ? "flash" : "flash-outline"} size={24} color="#247eff" />
-              )}
-              <Text style={[styles.buttonText, { color: "#247eff" }]}>
-                {ledLoading ? "Loading..." : ledState ? "LED ON" : "LED OFF"}
-              </Text>
+            <TouchableOpacity style={[styles.modernButton, styles.inactiveButton]} onPress={handleLightPress}>
+              <Ionicons name={ledState ? "flash" : "flash-outline"} size={24} color="#247eff" />
+              <Text style={[styles.buttonText, { color: "#247eff" }]}>{ledState ? "LED ON" : "LED OFF"}</Text>
             </TouchableOpacity>
           </View>
         </View>
