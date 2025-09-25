@@ -51,6 +51,34 @@ const getSignalColor = (rssi: number | null) => {
   return "#ef4444" // Red for poor signal
 }
 
+const convertRssiToDistance = (rssi: number | null): string => {
+  if (rssi === null) return "Unknown"
+
+  // RSSI to distance formula: Distance = 10^((Tx Power - RSSI) / (10 * N))
+  // Tx Power: -59 dBm (typical for most BLE devices)
+  // N: 2 (path loss exponent for free space)
+  const txPower = -59
+  const pathLossExponent = 2
+
+  const distance = Math.pow(10, (txPower - rssi) / (10 * pathLossExponent))
+
+  if (distance < 1) {
+    return `${(distance * 100).toFixed(0)} cm`
+  } else if (distance < 10) {
+    return `${distance.toFixed(1)} m`
+  } else {
+    return `${distance.toFixed(0)} m`
+  }
+}
+
+const getDistanceColor = (rssi: number | null) => {
+  if (rssi === null) return "#9ca3af"
+  if (rssi >= -55) return "#10b981" // Green for close distance
+  if (rssi >= -65) return "#f59e0b" // Yellow for medium distance
+  if (rssi >= -80) return "#f97316" // Orange for far distance
+  return "#ef4444" // Red for very far distance
+}
+
 export default function SearchActions({
   object,
   rssi,
@@ -330,6 +358,18 @@ export default function SearchActions({
           </View>
         </View>
 
+        <View style={styles.distanceCard}>
+          <View style={styles.distanceIconContainer}>
+            <MaterialCommunityIcons name="map-marker-distance" size={20} color={getDistanceColor(currentRssi)} />
+          </View>
+          <View style={styles.distanceInfo}>
+            <Text style={[styles.distanceValue, { color: getDistanceColor(currentRssi) }]}>
+              {convertRssiToDistance(currentRssi)}
+            </Text>
+            <Text style={styles.distanceLabel}>Estimated Distance</Text>
+          </View>
+        </View>
+
         <View style={styles.controlsContainer}>
           <View style={styles.controlsRow}>
             <TouchableOpacity style={[styles.modernButton, styles.inactiveButton]} onPress={handleBuzzerPress}>
@@ -462,6 +502,43 @@ const styles = StyleSheet.create({
   },
   compactProximityText: {
     color: "#9ca3af", // Low opacity gray as requested
+    fontSize: 10,
+    fontWeight: "400",
+  },
+  distanceCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 6,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 0.5,
+    borderColor: "#e5e7eb",
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 1,
+    elevation: 0.5,
+  },
+  distanceIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+    backgroundColor: "#f9fafb",
+  },
+  distanceInfo: {
+    flex: 1,
+  },
+  distanceValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  distanceLabel: {
+    color: "#9ca3af",
     fontSize: 10,
     fontWeight: "400",
   },
