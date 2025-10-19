@@ -398,7 +398,7 @@ export default function SearchActions({
             </View>
             <Text style={styles.modalTitle}>Connection Lost</Text>
             <Text style={styles.modalDescription}>
-              You have been disconnected due to distance limitations or Bluetooth is off. Ensure you are within 10–15
+              You have been disconnected due to distance limitations or Bluetooth is off. Ensure you are within 5
               meters from the microcontroller and keep Bluetooth on.
             </Text>
             <TouchableOpacity style={styles.modalButton} onPress={handleDisconnectModalClose}>
