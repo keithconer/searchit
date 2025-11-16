@@ -48,7 +48,7 @@ const PERMISSIONS_REQUESTED_KEY = "@searchit_permissions_requested";
 
 const getSignalIcon = (rssi: number | null, bluetoothOff = false) => {
   if (bluetoothOff || rssi === null) {
-    return { icon: "wifi-outline", color: "#d32f2f", label: "No signal detected" };
+    return { icon: "wifi-off", color: "#d32f2f", label: "No signal detected" };
   }
   if (rssi >= -55) {
     return { icon: "cellular", color: "#00c853", label: "Super Near" };
@@ -260,82 +260,72 @@ export default function HomeScreen() {
   }
 
   // Load saved objects and setup status on initial load
-useEffect(() => {
-  (async () => {
-    // First, check if this is a fresh install by looking for a first run marker
-    const firstRun = await AsyncStorage.getItem('@searchit_first_run');
-    
-    if (firstRun === null) {
-      // FRESH INSTALL - Clear everything!
-      console.log('Fresh install detected, clearing all data...');
-      await AsyncStorage.multiRemove([
-        STORAGE_KEY,
-        SETUP_DONE_KEY, 
-        PERMISSIONS_REQUESTED_KEY
-      ]);
+  useEffect(() => {
+    (async () => {
+      // First, check if this is a fresh install by looking for a first run marker
+      const firstRun = await AsyncStorage.getItem('@searchit_first_run');
       
-      // Set first run marker
-      await AsyncStorage.setItem('@searchit_first_run', 'true');
-      
-      // Start fresh
-      setObjects([]);
-      setSetupDone(false);
-      setShowForm(false);
-      setPermissionsRequested(false);
-      return;
-    }
-
-    // NOT fresh install - check existing data
-    const data = await AsyncStorage.getItem(STORAGE_KEY);
-    
-    if (data) {
-      const parsedObjects = JSON.parse(data);
-      setObjects(parsedObjects);
-
-      // ONLY mark setup as done if we have exactly 3 objects
-      if (parsedObjects.length === 3) {
-        setSetupDone(true);
-        await AsyncStorage.setItem(SETUP_DONE_KEY, "true");
-      } else {
-        // If not 3 objects, ensure we're in setup mode
+      if (firstRun === null) {
+        // FRESH INSTALL - Clear everything!
+        console.log('Fresh install detected, clearing all data...');
+        await AsyncStorage.multiRemove([
+          STORAGE_KEY,
+          SETUP_DONE_KEY, 
+          PERMISSIONS_REQUESTED_KEY
+        ]);
+        
+        // Set first run marker
+        await AsyncStorage.setItem('@searchit_first_run', 'true');
+        
+        // Start fresh
+        setObjects([]);
         setSetupDone(false);
-        await AsyncStorage.removeItem(SETUP_DONE_KEY);
-        await AsyncStorage.removeItem(PERMISSIONS_REQUESTED_KEY);
+        setShowForm(false);
+        setPermissionsRequested(false);
+        return;
       }
-    } else {
-      // No objects at all, definitely in setup mode
-      setObjects([]);
-      setSetupDone(false);
-      setShowForm(false);
-      await AsyncStorage.multiRemove([SETUP_DONE_KEY, PERMISSIONS_REQUESTED_KEY]);
-    }
-  })();
-}, []);
+
+      // NOT fresh install - check existing data
+      const data = await AsyncStorage.getItem(STORAGE_KEY);
+      
+      if (data) {
+        const parsedObjects = JSON.parse(data);
+        setObjects(parsedObjects);
+
+        // Mark setup as done if we have objects (even if not 3)
+        if (parsedObjects.length > 0) {
+          setSetupDone(true);
+        } else {
+          setSetupDone(false);
+        }
+      } else {
+        // No objects at all, definitely in setup mode
+        setObjects([]);
+        setSetupDone(false);
+        setShowForm(false);
+        await AsyncStorage.multiRemove([SETUP_DONE_KEY, PERMISSIONS_REQUESTED_KEY]);
+      }
+    })();
+  }, []);
 
   // Request permissions after completing setup with 3 objects
   useEffect(() => {
     const requestPermissionsAfterSetup = async () => {
-      if (objects.length === 3 && !setupDone) {
+      if (objects.length === 3 && !permissionsRequested) {
         // Request permissions only if not already requested
-        if (!permissionsRequested) {
-          const permsGranted = await requestBlePermissionsCustom();
-          if (permsGranted) {
-            await actuallyRequestPermissions();
-          }
+        const permsGranted = await requestBlePermissionsCustom();
+        if (permsGranted) {
+          await actuallyRequestPermissions();
         }
-
-        // Mark setup as done
-        await AsyncStorage.setItem(SETUP_DONE_KEY, "true");
-        setSetupDone(true);
       }
     };
 
     requestPermissionsAfterSetup();
-  }, [objects, setupDone, permissionsRequested]);
+  }, [objects, permissionsRequested]);
 
   // Initialize BLE Manager
   useEffect(() => {
-    if (!setupDone || objects.length < 3) return;
+    if (objects.length === 0) return;
 
     bleManager.current = getBleManager();
     let scanActive = false;
@@ -399,11 +389,13 @@ useEffect(() => {
       );
     }
 
-    startBleScan();
+    if (objects.length > 0) {
+      startBleScan();
+    }
 
     const handleAppStateChange = (nextAppState: string) => {
       if (nextAppState === "active") {
-        if (!bluetoothOff) startBleScan();
+        if (!bluetoothOff && objects.length > 0) startBleScan();
       } else if (nextAppState.match(/inactive|background/)) {
         bleManager.current && bleManager.current.stopDeviceScan();
       }
@@ -754,12 +746,6 @@ useEffect(() => {
       setObjects(updatedObjects);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedObjects));
       
-      // Update setupDone status if we have less than 3 objects
-      if (updatedObjects.length < 3) {
-        setSetupDone(false);
-        await AsyncStorage.removeItem(SETUP_DONE_KEY);
-      }
-      
       setRemoveAuthModalVisible(false);
       setObjectToRemove(null);
     } else {
@@ -845,8 +831,8 @@ useEffect(() => {
     );
   }
 
-  // Setup process screen (adding objects)
-  if (!setupDone) {
+  // Setup process screen (adding objects) - show when no objects
+  if (!setupDone || objects.length === 0) {
     const availableTags = TAGS.filter(
       (tag) => !objects.find((obj) => obj.tag === tag.value)
     );
@@ -881,6 +867,11 @@ useEffect(() => {
       setObjects(updated);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 
+      // Mark setup as done when we have at least one object
+      if (updated.length > 0) {
+        setSetupDone(true);
+      }
+
       // Show success modal
       setSuccessModalVisible(true);
     };
@@ -913,12 +904,12 @@ useEffect(() => {
                   You can tag 3 specific objects to track.
                 </Text>
                 <TouchableOpacity
-  style={styles.addButton}
-  onPress={handleShowForm}
->
-  <Ionicons name="key-outline" size={22} color="white" />
-  <Text style={styles.addButtonText}>Start Tagging</Text>
-</TouchableOpacity>
+                  style={styles.addButton}
+                  onPress={handleShowForm}
+                >
+                  <Ionicons name="key-outline" size={22} color="white" />
+                  <Text style={styles.addButtonText}>Start Tagging</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.formContainer}>
@@ -1221,7 +1212,7 @@ useEffect(() => {
     );
   }
 
-  // Main objects list screen (when setup is done)
+  // Main objects list screen (when we have objects)
   return (
     <SafeAreaView style={styles.containerNoPad}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
@@ -1310,6 +1301,21 @@ useEffect(() => {
           })}
         </View>
 
+        {/* Add More Objects Button - Only show if we have less than 3 objects */}
+        {objects.length < 3 && (
+          <View style={styles.addMoreContainer}>
+            <TouchableOpacity
+              style={styles.addMoreButton}
+              onPress={handleShowForm}
+            >
+              <Ionicons name="add-circle-outline" size={22} color="#247eff" />
+              <Text style={styles.addMoreButtonText}>
+                Add More Objects ({objects.length}/3)
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Pair Button */}
         {showPairButton && (
           <View style={styles.pairButtonContainer}>
@@ -1331,6 +1337,207 @@ useEffect(() => {
         <View style={{ flex: 1 }} />
         <Text style={styles.footer}>2025. All Rights Reserved.</Text>
       </ScrollView>
+
+      {/* --- Add Object Form Modal --- */}
+      <Modal
+        visible={showForm}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowForm(false)}
+      >
+        <SafeAreaView style={styles.modalBg}>
+          <View style={styles.formModalContent}>
+            <View style={styles.formModalHeader}>
+              <Text style={styles.formModalTitle}>
+                Add Object ({objects.length}/3)
+              </Text>
+              <TouchableOpacity onPress={() => setShowForm(false)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.formModalScrollView}>
+              <Text style={styles.label}>
+                Object name <Text style={{ color: "red" }}>*</Text>
+              </Text>
+              <TextInput
+                ref={nameRef}
+                placeholder="Wallet"
+                placeholderTextColor="#888"
+                style={[
+                  styles.input,
+                  errors.name && { borderColor: "red", borderWidth: 1 },
+                ]}
+                value={name}
+                onChangeText={setName}
+                editable={true}
+                returnKeyType="next"
+                onSubmitEditing={() => descRef.current?.focus()}
+              />
+              {errors.name && <Text style={styles.err}>{errors.name}</Text>}
+              
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                ref={descRef}
+                placeholder="Write what tag you assign on this object"
+                placeholderTextColor="#888"
+                multiline
+                style={[styles.input, { height: 60 }]}
+                value={description}
+                onChangeText={setDescription}
+                editable={true}
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
+              />
+              
+              <Text style={styles.label}>
+                Assign Tag <Text style={{ color: "red" }}>*</Text>
+              </Text>
+              <View style={{ marginBottom: 10, zIndex: 1000 }}>
+                <DropDownPicker
+                  open={tagPickerOpen}
+                  setOpen={setTagPickerOpen}
+                  value={selectedTag}
+                  setValue={setSelectedTag}
+                  items={TAGS.filter((tag) => !objects.find((obj) => obj.tag === tag.value))}
+                  setItems={setTagPickerItems}
+                  placeholder="Select tag..."
+                  style={{
+                    backgroundColor: "#fff",
+                    borderColor: errors.tag ? "red" : "#ddd",
+                  }}
+                  dropDownContainerStyle={{
+                    backgroundColor: "#fff",
+                    borderColor: errors.tag ? "red" : "#ddd",
+                    zIndex: 1000,
+                  }}
+                  textStyle={{
+                    color: "#000",
+                  }}
+                  placeholderStyle={{
+                    color: "#888",
+                  }}
+                  listItemLabelStyle={{
+                    color: "#000",
+                  }}
+                />
+              </View>
+              {errors.tag && <Text style={styles.err}>{errors.tag}</Text>}
+              
+              <Text style={styles.label}>
+                Set PIN <Text style={{ color: "red" }}>*</Text>
+              </Text>
+              <View
+                style={[
+                  styles.passwordField,
+                  errors.password && { borderColor: "red", borderWidth: 1 },
+                ]}
+              >
+                <Pressable onPress={() => setPasswordVisible((v) => !v)}>
+                  <Ionicons
+                    name={passwordVisible ? "eye" : "eye-off"}
+                    size={18}
+                    color="#999"
+                  />
+                </Pressable>
+                <TextInput
+                  ref={passwordRef}
+                  placeholder="(maximum of 6 digits)"
+                  placeholderTextColor="#888"
+                  maxLength={6}
+                  secureTextEntry={!passwordVisible}
+                  style={styles.passwordInput}
+                  value={password}
+                  onChangeText={setPassword}
+                  editable={true}
+                  keyboardType="numeric"
+                  returnKeyType="next"
+                  onSubmitEditing={() => confirmRef.current?.focus()}
+                />
+              </View>
+              {errors.password && (
+                <Text style={styles.err}>{errors.password}</Text>
+              )}
+              
+              <Text style={styles.label}>
+                Confirm PIN <Text style={{ color: "red" }}>*</Text>
+              </Text>
+              <View
+                style={[
+                  styles.passwordField,
+                  errors.confirm && { borderColor: "red", borderWidth: 1 },
+                ]}
+              >
+                <Pressable
+                  onPress={() => setConfirmPasswordVisible((v) => !v)}
+                  disabled={password.length === 0}
+                >
+                  <Ionicons
+                    name={confirmPasswordVisible ? "eye" : "eye-off"}
+                    size={18}
+                    color={password.length === 0 ? "#ccc" : "#999"}
+                  />
+                </Pressable>
+                <TextInput
+                  ref={confirmRef}
+                  placeholder=""
+                  placeholderTextColor="#888"
+                  secureTextEntry={!confirmPasswordVisible}
+                  style={styles.passwordInput}
+                  value={confirm}
+                  onChangeText={setConfirm}
+                  editable={password.length > 0}
+                  keyboardType="numeric"
+                />
+              </View>
+              {errors.confirm && (
+                <Text style={styles.err}>{errors.confirm}</Text>
+              )}
+              
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={async () => {
+                  const validate = () => {
+                    const err: { [key: string]: string } = {};
+                    if (!name.trim()) err.name = "Object name is required";
+                    if (!selectedTag) err.tag = "Tag is required";
+                    if (!password) err.password = "PIN is required";
+                    if (password.length < 1 || password.length > 6)
+                      err.password = "PIN must be 1-6 digits";
+                    if (!confirm) err.confirm = "Confirm PIN is required";
+                    if (confirm !== password) err.confirm = "PINs do not match";
+                    return err;
+                  };
+
+                  const err = validate();
+                  setErrors(err);
+                  if (Object.keys(err).length > 0) return;
+
+                  // Create a new object with a placeholder deviceId
+                  const obj: ObjectType = {
+                    name: name.trim(),
+                    description: description.trim(),
+                    tag: selectedTag!,
+                    password,
+                    deviceId: `placeholder-${Date.now()}`,
+                  };
+
+                  const updated = [...objects, obj];
+                  setObjects(updated);
+                  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+
+                  // Close modal and reset form
+                  setShowForm(false);
+                  resetForm();
+                  setSuccessModalVisible(true);
+                }}
+              >
+                <Text style={styles.confirmButtonText}>✔ Confirm Object</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </SafeAreaView>
+      </Modal>
 
       {/* --- FAQ Modal --- */}
       <Modal
@@ -1798,6 +2005,33 @@ useEffect(() => {
         </View>
       </Modal>
 
+      {/* --- Success Modal --- */}
+      <Modal
+        visible={successModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSuccessModalVisible(false)}
+      >
+        <View style={styles.modalBg}>
+          <View style={styles.successModalContent}>
+            <View style={styles.successIconContainer}>
+              <Ionicons name="checkmark" size={28} color="#fff" />
+            </View>
+            <Text style={styles.successModalTitle}>Added Successfully</Text>
+            <Text style={styles.successModalText}>
+              You may now be able to perform search actions on this specific
+              object you've added.
+            </Text>
+            <TouchableOpacity
+              style={styles.successModalButton}
+              onPress={() => setSuccessModalVisible(false)}
+            >
+              <Text style={styles.successModalButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* --- Permission modals for main screen --- */}
       <Modal
         visible={permissionModalVisible && !permissionsRequested}
@@ -1957,7 +2191,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     borderRadius: 6,
     paddingVertical: 2,
-    marginBottom: 40,
+    marginBottom: 20,
     borderColor: "#ececec",
     borderWidth: 1,
     elevation: 1,
@@ -1995,7 +2229,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   signalLabel: {
-    fontSize: 13,
+    fontSize: 11, // Reduced font size for "No signal detected"
+    textAlign: 'right',
   },
   addButton: {
     backgroundColor: "#247eff",
@@ -2011,6 +2246,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,          // spacing between icon & text
+  },
+  // Add More Objects Button
+  addMoreContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  addMoreButton: {
+    backgroundColor: "#f8f6f5",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#247eff",
+    borderStyle: "dashed",
+  },
+  addMoreButtonText: {
+    color: "#247eff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
   },
   formContainer: { flex: 1 },
   title: {
@@ -2067,6 +2324,34 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.2)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  // Form Modal Styles
+  formModalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    width: "90%",
+    maxHeight: "90%",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  formModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  formModalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#247eff",
+  },
+  formModalScrollView: {
+    padding: 20,
   },
   customModalWhite: {
     backgroundColor: "#fff",
