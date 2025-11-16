@@ -48,7 +48,7 @@ const PERMISSIONS_REQUESTED_KEY = "@searchit_permissions_requested";
 
 const getSignalIcon = (rssi: number | null, bluetoothOff = false) => {
   if (bluetoothOff || rssi === null) {
-    return { icon: "wifi-off", color: "#d32f2f", label: "No signal detected" };
+    return { icon: "ban-outline", color: "#d32f2f", label: "No signal detected" };
   }
   if (rssi >= -55) {
     return { icon: "cellular", color: "#00c853", label: "Super Near" };
@@ -122,6 +122,7 @@ export default function HomeScreen() {
   const [removePassword, setRemovePassword] = useState("");
   const [removePasswordVisible, setRemovePasswordVisible] = useState(false);
   const [objectToRemove, setObjectToRemove] = useState<ObjectType | null>(null);
+  const [minimumObjectModalVisible, setMinimumObjectModalVisible] = useState(false);
 
   // State for FAQ modal
   const [faqModalVisible, setFaqModalVisible] = useState(false);
@@ -727,6 +728,12 @@ export default function HomeScreen() {
 
   // Handle remove object request
   const handleRemoveRequest = (obj: ObjectType) => {
+    // Prevent removal if this is the last object
+    if (objects.length === 1) {
+      setMinimumObjectModalVisible(true);
+      return;
+    }
+
     setObjectToRemove(obj);
     setRemovePassword("");
     setRemovePasswordVisible(false);
@@ -1290,9 +1297,12 @@ export default function HomeScreen() {
                   color={signal.color}
                   style={{ marginHorizontal: 4 }}
                 />
-                <TouchableOpacity onPress={() => handleRemoveRequest(obj)} style={{ marginRight: 8 }}>
-                  <Ionicons name="trash-outline" size={20} color="#ff3b30" />
-                </TouchableOpacity>
+                {/* Hide remove button if this is the last object */}
+                {objects.length > 1 && (
+                  <TouchableOpacity onPress={() => handleRemoveRequest(obj)} style={{ marginRight: 8 }}>
+                    <Ionicons name="trash-outline" size={20} color="#ff3b30" />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity onPress={() => handleAuthRequest(obj)}>
                   <Ionicons name="ellipsis-horizontal" size={22} color="#666" />
                 </TouchableOpacity>
@@ -1539,6 +1549,35 @@ export default function HomeScreen() {
         </SafeAreaView>
       </Modal>
 
+      {/* --- Minimum Object Modal --- */}
+      <Modal
+        visible={minimumObjectModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMinimumObjectModalVisible(false)}
+      >
+        <View style={styles.modalBg}>
+          <View style={styles.authModalContent}>
+            <Ionicons
+              name="alert-circle-outline"
+              size={32}
+              color="#ffa500"
+              style={styles.authIcon}
+            />
+            <Text style={styles.authModalTitle}>Cannot Remove</Text>
+            <Text style={styles.authModalText}>
+              You must keep at least one object. To remove this object, please add another object first.
+            </Text>
+            <TouchableOpacity
+              style={[styles.authConfirmButton, { backgroundColor: "#ffa500" }]}
+              onPress={() => setMinimumObjectModalVisible(false)}
+            >
+              <Text style={styles.authConfirmButtonText}>Understand</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* --- FAQ Modal --- */}
       <Modal
         visible={faqModalVisible}
@@ -1611,6 +1650,10 @@ export default function HomeScreen() {
               <View style={styles.faqStep}>
                 <Text style={styles.faqNumber}>1.</Text>
                 <Text style={styles.faqText}>Click the remove icon</Text>
+              </View>
+              <View style={styles.faqStep}>
+                <Text style={styles.faqNumber}>2.</Text>
+                <Text style={styles.faqText}>You must keep at least one object at all times</Text>
               </View>
 
               <Text style={styles.faqSectionTitle}>How to disconnect on the specific tag I've established connection with and pair with another?</Text>
