@@ -262,7 +262,30 @@ export default function HomeScreen() {
   // Load saved objects and setup status on initial load
 useEffect(() => {
   (async () => {
-    // Check if we have the required 3 objects for setup completion
+    // First, check if this is a fresh install by looking for a first run marker
+    const firstRun = await AsyncStorage.getItem('@searchit_first_run');
+    
+    if (firstRun === null) {
+      // FRESH INSTALL - Clear everything!
+      console.log('Fresh install detected, clearing all data...');
+      await AsyncStorage.multiRemove([
+        STORAGE_KEY,
+        SETUP_DONE_KEY, 
+        PERMISSIONS_REQUESTED_KEY
+      ]);
+      
+      // Set first run marker
+      await AsyncStorage.setItem('@searchit_first_run', 'true');
+      
+      // Start fresh
+      setObjects([]);
+      setSetupDone(false);
+      setShowForm(false);
+      setPermissionsRequested(false);
+      return;
+    }
+
+    // NOT fresh install - check existing data
     const data = await AsyncStorage.getItem(STORAGE_KEY);
     
     if (data) {
@@ -272,18 +295,19 @@ useEffect(() => {
       // ONLY mark setup as done if we have exactly 3 objects
       if (parsedObjects.length === 3) {
         setSetupDone(true);
-        // Ensure the setup done flag is set
         await AsyncStorage.setItem(SETUP_DONE_KEY, "true");
       } else {
         // If not 3 objects, ensure we're in setup mode
         setSetupDone(false);
         await AsyncStorage.removeItem(SETUP_DONE_KEY);
+        await AsyncStorage.removeItem(PERMISSIONS_REQUESTED_KEY);
       }
     } else {
       // No objects at all, definitely in setup mode
       setObjects([]);
       setSetupDone(false);
       setShowForm(false);
+      await AsyncStorage.multiRemove([SETUP_DONE_KEY, PERMISSIONS_REQUESTED_KEY]);
     }
   })();
 }, []);
