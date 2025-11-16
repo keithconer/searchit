@@ -262,45 +262,25 @@ export default function HomeScreen() {
   // Load saved objects and setup status on initial load
 useEffect(() => {
   (async () => {
-    // Always clear storage on fresh install
-    const isFirstRun = await AsyncStorage.getItem("isFirstRun");
-
-    if (isFirstRun === null) {
-      // Fresh install detected - CLEAR EVERYTHING
-      await AsyncStorage.multiRemove([
-        STORAGE_KEY, 
-        SETUP_DONE_KEY, 
-        PERMISSIONS_REQUESTED_KEY,
-        "isFirstRun" // Remove this too to ensure clean state
-      ]);
-
-      // Set fresh state
-      setObjects([]);
-      setSetupDone(false);
-      setPermissionsRequested(false);
-      setShowForm(false);
-      
-      // Mark as first run completed
-      await AsyncStorage.setItem("isFirstRun", "false");
-      return;
-    }
-
-    // Not first run → check if setup is complete
-    const setupDoneValue = await AsyncStorage.getItem(SETUP_DONE_KEY);
+    // Check if we have the required 3 objects for setup completion
     const data = await AsyncStorage.getItem(STORAGE_KEY);
     
-    if (setupDoneValue === "true" && data) {
+    if (data) {
       const parsedObjects = JSON.parse(data);
       setObjects(parsedObjects);
-      setSetupDone(true);
-      
-      // Also check permissions status
-      const permsRequested = await AsyncStorage.getItem(PERMISSIONS_REQUESTED_KEY);
-      if (permsRequested === "true") {
-        setPermissionsRequested(true);
+
+      // ONLY mark setup as done if we have exactly 3 objects
+      if (parsedObjects.length === 3) {
+        setSetupDone(true);
+        // Ensure the setup done flag is set
+        await AsyncStorage.setItem(SETUP_DONE_KEY, "true");
+      } else {
+        // If not 3 objects, ensure we're in setup mode
+        setSetupDone(false);
+        await AsyncStorage.removeItem(SETUP_DONE_KEY);
       }
     } else {
-      // Setup not complete or no objects, show setup process
+      // No objects at all, definitely in setup mode
       setObjects([]);
       setSetupDone(false);
       setShowForm(false);
