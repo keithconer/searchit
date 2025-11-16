@@ -48,7 +48,7 @@ const PERMISSIONS_REQUESTED_KEY = "@searchit_permissions_requested";
 
 const getSignalIcon = (rssi: number | null, bluetoothOff = false) => {
   if (bluetoothOff || rssi === null) {
-    return { icon: "ban-outline", color: "#d32f2f", label: "No signal detected" };
+    return { icon: "ban-outline", color: "#d32f2f", label: "No signal" };
   }
   if (rssi >= -55) {
     return { icon: "cellular", color: "#00c853", label: "Super Near" };
@@ -312,7 +312,9 @@ export default function HomeScreen() {
   // Request permissions after completing setup with 3 objects
   useEffect(() => {
     const requestPermissionsAfterSetup = async () => {
+      // Only request permissions when we have exactly 3 objects and permissions haven't been requested yet
       if (objects.length === 3 && !permissionsRequested) {
+        console.log('3 objects created, requesting permissions...');
         // Request permissions only if not already requested
         const permsGranted = await requestBlePermissionsCustom();
         if (permsGranted) {
@@ -879,6 +881,9 @@ export default function HomeScreen() {
         setSetupDone(true);
       }
 
+      // Clear the form fields
+      resetForm();
+
       // Show success modal
       setSuccessModalVisible(true);
     };
@@ -886,8 +891,18 @@ export default function HomeScreen() {
     const handleCloseSuccessModal = () => {
       setSuccessModalVisible(false);
 
-      // Reset form for next object
-      resetForm();
+      // Don't reset form here anymore - already done in onConfirm
+      // Just ensure we're not showing the form if we have objects
+      if (objects.length >= 0) {
+        // Keep form open for adding more objects until we have 3
+        if (objects.length < 2) {
+          // Reset form for next object (this will clear fields)
+          resetForm();
+        } else {
+          // If we just added the 3rd object, close the form
+          setShowForm(false);
+        }
+      }
     };
 
     return (
@@ -1536,9 +1551,14 @@ export default function HomeScreen() {
                   setObjects(updated);
                   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 
-                  // Close modal and reset form
-                  setShowForm(false);
+                  // Clear the form fields
                   resetForm();
+
+                  // Close modal if we just added the 3rd object
+                  if (updated.length === 3) {
+                    setShowForm(false);
+                  }
+
                   setSuccessModalVisible(true);
                 }}
               >
@@ -2272,7 +2292,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   signalLabel: {
-    fontSize: 11, // Reduced font size for "No signal detected"
+    fontSize: 11, // Reduced font size for "No signal"
     textAlign: 'right',
   },
   addButton: {
