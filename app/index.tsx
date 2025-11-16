@@ -48,18 +48,18 @@ const PERMISSIONS_REQUESTED_KEY = "@searchit_permissions_requested";
 
 const getSignalIcon = (rssi: number | null, bluetoothOff = false) => {
   if (bluetoothOff || rssi === null) {
-    return { icon: "warning-outline", color: "#d32f2f", label: "n/a" }; // Red for error
+    return { icon: "wifi-outline", color: "#d32f2f", label: "No signal detected" };
   }
   if (rssi >= -55) {
-    return { icon: "cellular", color: "#00c853", label: "Super Near" }; // Green
+    return { icon: "cellular", color: "#00c853", label: "Super Near" };
   }
   if (rssi >= -65) {
-    return { icon: "cellular-outline", color: "#ffd600", label: "Near" }; // Yellow
+    return { icon: "cellular-outline", color: "#ffd600", label: "Near" };
   }
   if (rssi >= -80) {
-    return { icon: "cellular-outline", color: "#ff9100", label: "Far" }; // Orange
+    return { icon: "cellular-outline", color: "#ff9100", label: "Far" };
   }
-  return { icon: "cellular-outline", color: "#d32f2f", label: "Super Far" }; // Red
+  return { icon: "cellular-outline", color: "#d32f2f", label: "Super Far" };
 };
 
 type ObjectType = {
@@ -117,6 +117,15 @@ export default function HomeScreen() {
   const [editConfirmVisible, setEditConfirmVisible] = useState(false);
   const [editErrors, setEditErrors] = useState<{ [key: string]: string }>({});
 
+  // States for remove object
+  const [removeAuthModalVisible, setRemoveAuthModalVisible] = useState(false);
+  const [removePassword, setRemovePassword] = useState("");
+  const [removePasswordVisible, setRemovePasswordVisible] = useState(false);
+  const [objectToRemove, setObjectToRemove] = useState<ObjectType | null>(null);
+
+  // State for FAQ modal
+  const [faqModalVisible, setFaqModalVisible] = useState(false);
+
   const [rssiMap, setRssiMap] = useState<{ [tag: string]: number | null }>({});
   const [bluetoothOff, setBluetoothOff] = useState(false);
   const bleManager = useRef<BleManager | null>(null);
@@ -145,6 +154,7 @@ export default function HomeScreen() {
   const editDescRef = useRef<TextInput>(null);
   const editPasswordRef = useRef<TextInput>(null);
   const editConfirmRef = useRef<TextInput>(null);
+  const removePasswordRef = useRef<TextInput>(null);
 
   // For DropDownPicker - fixed TypeScript issues
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
@@ -702,6 +712,42 @@ export default function HomeScreen() {
     }, 100);
   };
 
+  // Handle remove object request
+  const handleRemoveRequest = (obj: ObjectType) => {
+    setObjectToRemove(obj);
+    setRemovePassword("");
+    setRemovePasswordVisible(false);
+    setRemoveAuthModalVisible(true);
+    setTimeout(() => {
+      removePasswordRef.current?.focus();
+    }, 100);
+  };
+
+  // Handle remove authentication submission
+  const handleRemoveAuthSubmit = async () => {
+    if (!objectToRemove) return;
+
+    if (removePassword === objectToRemove.password) {
+      // Password correct, remove the object
+      const updatedObjects = objects.filter(obj => obj.tag !== objectToRemove.tag);
+      setObjects(updatedObjects);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedObjects));
+      
+      // Update setupDone status if we have less than 3 objects
+      if (updatedObjects.length < 3) {
+        setSetupDone(false);
+        await AsyncStorage.removeItem(SETUP_DONE_KEY);
+      }
+      
+      setRemoveAuthModalVisible(false);
+      setObjectToRemove(null);
+    } else {
+      // Password incorrect, show error modal
+      setRemoveAuthModalVisible(false);
+      setIncorrectPasswordModalVisible(true);
+    }
+  };
+
   // Handle authentication submission
   const handleAuthSubmit = () => {
     if (!selectedObject) return;
@@ -735,11 +781,11 @@ export default function HomeScreen() {
     const err: { [key: string]: string } = {};
     if (!editName.trim()) err.name = "Object name is required";
     if (editPassword && editPassword.length > 6)
-      err.password = "Password must be 1-6 characters";
+      err.password = "PIN must be 1-6 digits";
     if (editPassword && !editConfirm)
-      err.confirm = "Confirm password is required";
+      err.confirm = "Confirm PIN is required";
     if (editPassword && editConfirm !== editPassword)
-      err.confirm = "Passwords do not match";
+      err.confirm = "PINs do not match";
 
     setEditErrors(err);
     if (Object.keys(err).length > 0) return;
@@ -788,11 +834,11 @@ export default function HomeScreen() {
       const err: { [key: string]: string } = {};
       if (!name.trim()) err.name = "Object name is required";
       if (!selectedTag) err.tag = "Tag is required";
-      if (!password) err.password = "Password is required";
+      if (!password) err.password = "PIN is required";
       if (password.length < 1 || password.length > 6)
-        err.password = "Password must be 1-6 characters";
-      if (!confirm) err.confirm = "Confirm password is required";
-      if (confirm !== password) err.confirm = "Passwords do not match";
+        err.password = "PIN must be 1-6 digits";
+      if (!confirm) err.confirm = "Confirm PIN is required";
+      if (confirm !== password) err.confirm = "PINs do not match";
       return err;
     };
 
@@ -924,7 +970,7 @@ export default function HomeScreen() {
                 </View>
                 {errors.tag && <Text style={styles.err}>{errors.tag}</Text>}
                 <Text style={styles.label}>
-                  Set Password <Text style={{ color: "red" }}>*</Text>
+                  Set PIN <Text style={{ color: "red" }}>*</Text>
                 </Text>
                 <View
                   style={[
@@ -941,7 +987,7 @@ export default function HomeScreen() {
                   </Pressable>
                   <TextInput
                     ref={passwordRef}
-                    placeholder="(maximum of 6 characters)"
+                    placeholder="(maximum of 6 digits)"
                     placeholderTextColor="#888"
                     maxLength={6}
                     secureTextEntry={!passwordVisible}
@@ -949,6 +995,7 @@ export default function HomeScreen() {
                     value={password}
                     onChangeText={setPassword}
                     editable={true}
+                    keyboardType="numeric"
                     returnKeyType="next"
                     onSubmitEditing={() => confirmRef.current?.focus()}
                   />
@@ -957,7 +1004,7 @@ export default function HomeScreen() {
                   <Text style={styles.err}>{errors.password}</Text>
                 )}
                 <Text style={styles.label}>
-                  Confirm Password <Text style={{ color: "red" }}>*</Text>
+                  Confirm PIN <Text style={{ color: "red" }}>*</Text>
                 </Text>
                 <View
                   style={[
@@ -984,6 +1031,7 @@ export default function HomeScreen() {
                     value={confirm}
                     onChangeText={setConfirm}
                     editable={password.length > 0}
+                    keyboardType="numeric"
                   />
                 </View>
                 {errors.confirm && (
@@ -1156,12 +1204,22 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.containerNoPad}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={styles.centeredTop}>
-          <Image
-            source={require("@/assets/imgs/logoNew5.png")}
-            style={styles.logo}
-          />
+        <View style={styles.headerContainer}>
+          <TouchableOpacity 
+            style={styles.faqButton}
+            onPress={() => setFaqModalVisible(true)}
+          >
+            <Ionicons name="information-circle-outline" size={28} color="#247eff" />
+          </TouchableOpacity>
+          <View style={styles.centeredTop}>
+            <Image
+              source={require("@/assets/imgs/logoNew5.png")}
+              style={styles.logo}
+            />
+          </View>
+          <View style={styles.faqButtonPlaceholder} />
         </View>
+        
         <Text style={styles.selectLabel}>Select Object</Text>
         <View style={styles.objectListWrapper}>
           {objects.map((obj, idx) => {
@@ -1200,7 +1258,7 @@ export default function HomeScreen() {
                       },
                     ]}
                   >
-                    {rssi !== null && !bluetoothOff ? `${rssi}` : "n/a"}
+                    {rssi !== null && !bluetoothOff ? `${rssi}` : ""}
                   </Text>
                   <Text
                     style={[
@@ -1211,7 +1269,7 @@ export default function HomeScreen() {
                       },
                     ]}
                   >
-                    {rssi !== null && !bluetoothOff ? `(${signal.label})` : ""}
+                    {signal.label}
                   </Text>
                 </View>
                 <Ionicons
@@ -1220,6 +1278,9 @@ export default function HomeScreen() {
                   color={signal.color}
                   style={{ marginHorizontal: 4 }}
                 />
+                <TouchableOpacity onPress={() => handleRemoveRequest(obj)} style={{ marginRight: 8 }}>
+                  <Ionicons name="trash-outline" size={20} color="#ff3b30" />
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => handleAuthRequest(obj)}>
                   <Ionicons name="ellipsis-horizontal" size={22} color="#666" />
                 </TouchableOpacity>
@@ -1250,8 +1311,95 @@ export default function HomeScreen() {
         <Text style={styles.footer}>2025. All Rights Reserved.</Text>
       </ScrollView>
 
-      {/* All modals remain the same... */}
-      {/* --- Pair Authentication Modal --- */}
+      {/* --- FAQ Modal --- */}
+      <Modal
+        visible={faqModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setFaqModalVisible(false)}
+      >
+        <View style={styles.modalBg}>
+          <View style={styles.faqModalContent}>
+            <View style={styles.faqHeader}>
+              <Text style={styles.faqTitle}>How to use this app</Text>
+              <TouchableOpacity onPress={() => setFaqModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.faqScrollView}>
+              <Text style={styles.faqIntro}>
+                First things first ensure that the tag is attach to the specific object you've named of on this application.
+              </Text>
+              
+              <Text style={styles.faqSectionTitle}>Pairing with Objects</Text>
+              <View style={styles.faqStep}>
+                <Text style={styles.faqNumber}>1.</Text>
+                <Text style={styles.faqText}>After setting up objects, click the specific object you want to pair with</Text>
+              </View>
+              <View style={styles.faqStep}>
+                <Text style={styles.faqNumber}>2.</Text>
+                <Text style={styles.faqText}>Open your phones bluetooth</Text>
+              </View>
+              <View style={styles.faqStep}>
+                <Text style={styles.faqNumber}>3.</Text>
+                <Text style={styles.faqText}>Enter the PIN you've set before</Text>
+              </View>
+              <View style={styles.faqStep}>
+                <Text style={styles.faqNumber}>4.</Text>
+                <Text style={styles.faqText}>A success modal will appear</Text>
+              </View>
+              <View style={styles.faqStep}>
+                <Text style={styles.faqNumber}>5.</Text>
+                <Text style={styles.faqText}>Click buzzer to produce audible sound</Text>
+              </View>
+              <View style={styles.faqStep}>
+                <Text style={styles.faqNumber}>6.</Text>
+                <Text style={styles.faqText}>Click LED to display visible lights</Text>
+              </View>
+              <View style={styles.faqStep}>
+                <Text style={styles.faqNumber}>7.</Text>
+                <Text style={styles.faqText}>See the proximity base on the distance of the tag to the phone.</Text>
+              </View>
+
+              <Text style={styles.faqSectionTitle}>How to rename the object</Text>
+              <View style={styles.faqStep}>
+                <Text style={styles.faqNumber}>1.</Text>
+                <Text style={styles.faqText}>click the 3 dotted icon</Text>
+              </View>
+              <View style={styles.faqStep}>
+                <Text style={styles.faqNumber}>2.</Text>
+                <Text style={styles.faqText}>Enter PIN</Text>
+              </View>
+              <View style={styles.faqStep}>
+                <Text style={styles.faqNumber}>3.</Text>
+                <Text style={styles.faqText}>Fill up the fields</Text>
+              </View>
+              <View style={styles.faqStep}>
+                <Text style={styles.faqNumber}>4.</Text>
+                <Text style={styles.faqText}>Save</Text>
+              </View>
+
+              <Text style={styles.faqSectionTitle}>How to remove the specific object when i only want to use 1 tag</Text>
+              <View style={styles.faqStep}>
+                <Text style={styles.faqNumber}>1.</Text>
+                <Text style={styles.faqText}>Click the remove icon</Text>
+              </View>
+
+              <Text style={styles.faqSectionTitle}>How to disconnect on the specific tag I've established connection with and pair with another?</Text>
+              <View style={styles.faqStep}>
+                <Text style={styles.faqNumber}>1.</Text>
+                <Text style={styles.faqText}>Just turn off your Bluetooth on your phone</Text>
+              </View>
+              <View style={styles.faqStep}>
+                <Text style={styles.faqNumber}>2.</Text>
+                <Text style={styles.faqText}>Turn it on again and click the specific tag you want.</Text>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* --- Pair PIN Modal --- */}
       <Modal
         visible={pairAuthModalVisible}
         transparent={true}
@@ -1266,9 +1414,9 @@ export default function HomeScreen() {
               color="#247eff"
               style={styles.authIcon}
             />
-            <Text style={styles.authModalTitle}>Authentication</Text>
+            <Text style={styles.authModalTitle}>Enter PIN</Text>
             <Text style={styles.authModalText}>
-              kindly input your registered password on this specific tag
+              kindly input your registered PIN on this specific tag
             </Text>
             <View style={styles.authPasswordField}>
               <Pressable onPress={() => setPairAuthPasswordVisible((v) => !v)}>
@@ -1287,6 +1435,7 @@ export default function HomeScreen() {
                 value={pairAuthPassword}
                 onChangeText={setPairAuthPassword}
                 maxLength={6}
+                keyboardType="numeric"
               />
             </View>
             <TouchableOpacity
@@ -1294,6 +1443,61 @@ export default function HomeScreen() {
               onPress={handlePairAuthSubmit}
             >
               <Text style={styles.authConfirmButtonText}>Confirm</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* --- Remove PIN Modal --- */}
+      <Modal
+        visible={removeAuthModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setRemoveAuthModalVisible(false)}
+      >
+        <View style={styles.modalBg}>
+          <View style={styles.authModalContent}>
+            <Ionicons
+              name="trash-outline"
+              size={32}
+              color="#ff3b30"
+              style={styles.authIcon}
+            />
+            <Text style={styles.authModalTitle}>Enter PIN to Remove</Text>
+            <Text style={styles.authModalText}>
+              Enter your PIN to remove this object
+            </Text>
+            <View style={styles.authPasswordField}>
+              <Pressable onPress={() => setRemovePasswordVisible((v) => !v)}>
+                <Ionicons
+                  name={removePasswordVisible ? "eye" : "eye-off"}
+                  size={18}
+                  color="#999"
+                />
+              </Pressable>
+              <TextInput
+                ref={removePasswordRef}
+                placeholder=""
+                placeholderTextColor="#888"
+                secureTextEntry={!removePasswordVisible}
+                style={styles.authPasswordInput}
+                value={removePassword}
+                onChangeText={setRemovePassword}
+                maxLength={6}
+                keyboardType="numeric"
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.authConfirmButton, { backgroundColor: "#ff3b30" }]}
+              onPress={handleRemoveAuthSubmit}
+            >
+              <Text style={styles.authConfirmButtonText}>Remove Object</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.goBackButton}
+              onPress={() => setRemoveAuthModalVisible(false)}
+            >
+              <Text style={styles.goBackButtonText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1356,7 +1560,7 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      {/* --- Authentication Modal --- */}
+      {/* --- PIN Modal --- */}
       <Modal
         visible={authModalVisible}
         transparent={true}
@@ -1371,9 +1575,9 @@ export default function HomeScreen() {
               color="#247eff"
               style={styles.authIcon}
             />
-            <Text style={styles.authModalTitle}>Authentication</Text>
+            <Text style={styles.authModalTitle}>Enter PIN</Text>
             <Text style={styles.authModalText}>
-              kindly input your registered password on this specific tag
+              kindly input your registered PIN on this specific tag
             </Text>
             <View style={styles.authPasswordField}>
               <Pressable onPress={() => setAuthPasswordVisible((v) => !v)}>
@@ -1392,6 +1596,7 @@ export default function HomeScreen() {
                 value={authPassword}
                 onChangeText={setAuthPassword}
                 maxLength={6}
+                keyboardType="numeric"
               />
             </View>
             <TouchableOpacity
@@ -1404,7 +1609,7 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      {/* --- Incorrect Password Modal --- */}
+      {/* --- Incorrect PIN Modal --- */}
       <Modal
         visible={incorrectPasswordModalVisible}
         transparent={true}
@@ -1419,9 +1624,9 @@ export default function HomeScreen() {
               color="#ff3b30"
               style={styles.incorrectAuthIcon}
             />
-            <Text style={styles.incorrectAuthTitle}>Incorrect Password</Text>
+            <Text style={styles.incorrectAuthTitle}>Incorrect PIN</Text>
             <Text style={styles.authModalText}>
-              kindly try to remember your password
+              kindly try to remember your PIN
             </Text>
             <TouchableOpacity
               style={styles.authConfirmButton}
@@ -1429,6 +1634,8 @@ export default function HomeScreen() {
                 setIncorrectPasswordModalVisible(false);
                 if (selectedObject) {
                   setAuthModalVisible(true);
+                } else if (objectToRemove) {
+                  setRemoveAuthModalVisible(true);
                 } else {
                   setPairAuthModalVisible(true);
                 }
@@ -1488,7 +1695,7 @@ export default function HomeScreen() {
               onSubmitEditing={() => editPasswordRef.current?.focus()}
             />
 
-            <Text style={styles.editLabel}>Set Password</Text>
+            <Text style={styles.editLabel}>Set PIN</Text>
             <View
               style={[
                 styles.passwordField,
@@ -1504,13 +1711,14 @@ export default function HomeScreen() {
               </Pressable>
               <TextInput
                 ref={editPasswordRef}
-                placeholder="(maximum of 6 characters)"
+                placeholder="(maximum of 6 digits)"
                 placeholderTextColor="#888"
                 maxLength={6}
                 secureTextEntry={!editPasswordVisible}
                 style={styles.passwordInput}
                 value={editPassword}
                 onChangeText={setEditPassword}
+                keyboardType="numeric"
                 returnKeyType="next"
                 onSubmitEditing={() => editConfirmRef.current?.focus()}
               />
@@ -1519,7 +1727,7 @@ export default function HomeScreen() {
               <Text style={styles.err}>{editErrors.password}</Text>
             )}
 
-            <Text style={styles.editLabel}>Confirm Password</Text>
+            <Text style={styles.editLabel}>Confirm PIN</Text>
             <View
               style={[
                 styles.passwordField,
@@ -1545,6 +1753,7 @@ export default function HomeScreen() {
                 value={editConfirm}
                 onChangeText={setEditConfirm}
                 editable={editPassword.length > 0}
+                keyboardType="numeric"
               />
             </View>
             {editErrors.confirm && (
@@ -1688,6 +1897,20 @@ const styles = StyleSheet.create({
   
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   centeredTop: { alignItems: "center", marginTop: 50, marginBottom: 24 },
+  headerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginTop: 50,
+    marginBottom: 24,
+  },
+  faqButton: {
+    padding: 8,
+  },
+  faqButtonPlaceholder: {
+    width: 40, // Same width as FAQ button for balance
+  },
   logo: { width: 200, height: 140, resizeMode: "contain", marginBottom: 10 },
   heading: {
     fontSize: 32,
@@ -1860,6 +2083,68 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#247eff",
     alignItems: "center",
+  },
+  // FAQ Modal styles
+  faqModalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 20,
+    width: "90%",
+    maxHeight: "80%",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  faqHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    paddingBottom: 12,
+  },
+  faqTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#247eff",
+  },
+  faqScrollView: {
+    maxHeight: "100%",
+  },
+  faqIntro: {
+    fontSize: 14,
+    color: "#555",
+    marginBottom: 20,
+    lineHeight: 20,
+    textAlign: "center",
+    fontStyle: "italic",
+  },
+  faqSectionTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#247eff",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  faqStep: {
+    flexDirection: "row",
+    marginBottom: 8,
+    paddingLeft: 8,
+  },
+  faqNumber: {
+    fontWeight: "bold",
+    color: "#247eff",
+    marginRight: 8,
+    minWidth: 20,
+  },
+  faqText: {
+    fontSize: 14,
+    color: "#555",
+    lineHeight: 20,
+    flex: 1,
   },
   // Success modal styles
   successModalContent: {
