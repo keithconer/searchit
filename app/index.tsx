@@ -260,36 +260,53 @@ export default function HomeScreen() {
   }
 
   // Load saved objects and setup status on initial load
-  useEffect(() => {
-    (async () => {
-      const isFirstRun = await AsyncStorage.getItem("isFirstRun");
-  
-      if (isFirstRun === null) {
-        // Fresh install detected
-        // Instead of clear(), just reset what you need
-        await AsyncStorage.multiRemove([STORAGE_KEY]); 
-  
-        await AsyncStorage.setItem("isFirstRun", "false"); // this survives now
-  
-        setObjects([]);
-        setSetupDone(false);
-        setPermissionsRequested(false);
-        setShowForm(false);
-        return;
+useEffect(() => {
+  (async () => {
+    // Always clear storage on fresh install
+    const isFirstRun = await AsyncStorage.getItem("isFirstRun");
+
+    if (isFirstRun === null) {
+      // Fresh install detected - CLEAR EVERYTHING
+      await AsyncStorage.multiRemove([
+        STORAGE_KEY, 
+        SETUP_DONE_KEY, 
+        PERMISSIONS_REQUESTED_KEY,
+        "isFirstRun" // Remove this too to ensure clean state
+      ]);
+
+      // Set fresh state
+      setObjects([]);
+      setSetupDone(false);
+      setPermissionsRequested(false);
+      setShowForm(false);
+      
+      // Mark as first run completed
+      await AsyncStorage.setItem("isFirstRun", "false");
+      return;
+    }
+
+    // Not first run → check if setup is complete
+    const setupDoneValue = await AsyncStorage.getItem(SETUP_DONE_KEY);
+    const data = await AsyncStorage.getItem(STORAGE_KEY);
+    
+    if (setupDoneValue === "true" && data) {
+      const parsedObjects = JSON.parse(data);
+      setObjects(parsedObjects);
+      setSetupDone(true);
+      
+      // Also check permissions status
+      const permsRequested = await AsyncStorage.getItem(PERMISSIONS_REQUESTED_KEY);
+      if (permsRequested === "true") {
+        setPermissionsRequested(true);
       }
-  
-      // Not first run → load objects
-      const data = await AsyncStorage.getItem(STORAGE_KEY);
-      if (data) {
-        const parsedObjects = JSON.parse(data);
-        setObjects(parsedObjects);
-  
-        if (parsedObjects.length === 3) {
-          setSetupDone(true);
-        }
-      }
-    })();
-  }, []);
+    } else {
+      // Setup not complete or no objects, show setup process
+      setObjects([]);
+      setSetupDone(false);
+      setShowForm(false);
+    }
+  })();
+}, []);
 
   // Request permissions after completing setup with 3 objects
   useEffect(() => {
