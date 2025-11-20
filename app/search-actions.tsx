@@ -459,8 +459,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   shakableImage: {
-    width: 200,
-    height: 200,
+    width: 500,
+    height: 500,
     resizeMode: "contain",
   },
   bottomSection: {
