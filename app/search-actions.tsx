@@ -1,11 +1,12 @@
 "use client"
 
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
-import { Buffer } from "buffer"
-import { useEffect, useRef, useState } from "react"
-import { Alert, Animated, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native"
-import type { Device } from "react-native-ble-plx"
-import { SafeAreaView } from "react-native-safe-area-context"
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Buffer } from "buffer";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Animated, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import type { Device } from "react-native-ble-plx";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type ObjectType = {
   name: string
@@ -459,8 +460,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   shakableImage: {
-    width: 500,
-    height: 500,
+    width: 300,
+    height: 300,
     resizeMode: "contain",
   },
   bottomSection: {
