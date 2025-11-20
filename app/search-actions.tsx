@@ -341,7 +341,7 @@ export default function SearchActions({
 
       <View style={styles.imageContainer}>
         <Animated.View style={[styles.imageWrapper, { transform: [{ translateX: shakeAnimation }] }]}>
-          <Image source={require("../assets/images/shakableImage2.png")} style={styles.shakableImage} />
+          <Image source={require("../assets/images/shakableImage3.png")} style={styles.shakableImage} />
         </Animated.View>
       </View>
 
