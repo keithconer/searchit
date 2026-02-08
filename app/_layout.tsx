@@ -21,13 +21,13 @@ export default function RootLayout() {
   useEffect(() => {
     const clearOnFreshInstall = async () => {
       try {
-        const hasLaunched = await AsyncStorage.getItem("hasLaunched");
+        const hasLaunched = await AsyncStorage.getItem("@searchit_first_run");
         if (!hasLaunched) {
           // Clear all local storage data
           await AsyncStorage.clear();
 
           // Mark that the app has launched once
-          await AsyncStorage.setItem("hasLaunched", "true");
+          await AsyncStorage.setItem("@searchit_first_run", "true");
         }
       } catch (error) {
         console.log("Error clearing storage on fresh install:", error);

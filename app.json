@@ -12,6 +12,7 @@
             "package": "com.keithconerrr.searchitApp",
             "edgeToEdgeEnabled": true,
             "icon": "./assets/imgs/logo.png",
+            "allowBackup": false,
             "permissions": [
                 "android.permission.BLUETOOTH",
                 "android.permission.BLUETOOTH_ADMIN",

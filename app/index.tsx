@@ -4,24 +4,24 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useRef, useState } from "react";
 import {
-  AppState,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  PermissionsAndroid,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    AppState,
+    Image,
+    KeyboardAvoidingView,
+    Modal,
+    PermissionsAndroid,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import {
-  State as BleState,
-  type BleManager,
-  type Device,
+    State as BleState,
+    type BleManager,
+    type Device,
 } from "react-native-ble-plx";
 import DropDownPicker, { type ItemType } from "react-native-dropdown-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -263,30 +263,9 @@ export default function HomeScreen() {
   // Load saved objects and setup status on initial load
   useEffect(() => {
     (async () => {
-      // First, check if this is a fresh install by looking for a first run marker
-      const firstRun = await AsyncStorage.getItem('@searchit_first_run');
+      // Logic for clearing storage on fresh install is handled in _layout.tsx
+      // Here we just load the existing data.
       
-      if (firstRun === null) {
-        // FRESH INSTALL - Clear everything!
-        console.log('Fresh install detected, clearing all data...');
-        await AsyncStorage.multiRemove([
-          STORAGE_KEY,
-          SETUP_DONE_KEY, 
-          PERMISSIONS_REQUESTED_KEY
-        ]);
-        
-        // Set first run marker
-        await AsyncStorage.setItem('@searchit_first_run', 'true');
-        
-        // Start fresh
-        setObjects([]);
-        setSetupDone(false);
-        setShowForm(false);
-        setPermissionsRequested(false);
-        return;
-      }
-
-      // NOT fresh install - check existing data
       const data = await AsyncStorage.getItem(STORAGE_KEY);
       
       if (data) {
